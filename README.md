@@ -1,4 +1,4 @@
-# Construction Of Windows Based on Energy - COWBOE
+# Construction Of Windows Based On Energy - COWBOE
 
 This package consists of the "COWBOE" algorithm to construct windows on the reaction coordinate based on the test PMF values.
 
