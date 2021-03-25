@@ -15,7 +15,7 @@ COWBOE is a python 3 tool for parameter selection in Umbrella Sampling which is 
 - Module includes functions to perform comparison and visualization of different PMFs (Potential of Mean Forces / Free energy files) and the NM algorithm results.
 
 ## Installation
-`cowboe requires Python 3.6> to run.`
+`cowboe requires Python V3.6 or higher  to run.`
 ### Creating a virtual environment ###
 It is best to install cowboe in a new environment
 
