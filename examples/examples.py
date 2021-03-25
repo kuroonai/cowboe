@@ -13,6 +13,16 @@ Created on Tue Mar 23 14:44:35 2021
         
         naveenovan@gmail.com
         https://naveenovan.wixsite.com/kuroonai
+        
+        Dr. Li Xi,
+        Assistant Professor
+        Department of Chemical Engineering,
+        McMaster University, 
+        Hamilton, 
+        Canada.
+        
+        xili@mcmaster.ca
+        http://xiresearch.org/   
 """
 
 from cowboe import pmftopoints, cowboe, cowboefit, settings_update
