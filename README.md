@@ -2,6 +2,7 @@
 ## _Construction Of Windows Based on Energy_
 
 [![N|Solid](https://xiresearch.org/wp-content/uploads/2019/11/xiresearch-withcolor5-300x96.png)](https://xiresearch.org/)
+
 [![Build Status](https://travis-ci.org/joemccann/dillinger.svg?branch=master)](https://github.com/kuroonai/cowboe)
 ## What is cowboe
 COWBOE is a python 3 tool for parameter selection in Umbrella Sampling which is a free energy calculation method used in Molecular dynamics simulations.
