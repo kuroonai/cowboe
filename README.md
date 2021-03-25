@@ -124,11 +124,11 @@ https://anaconda.org/conda-forge/ffmpeg
 '''
 
 cowboe3Dsurface(progressfile = 'progress.txt')
-cowboe_trajcut(percentage=50.0, location='/home/naveen/Desktop/forpypi/cowboe/examples/benchmark',\
+cowboe_trajcut(percentage=50.0, location='</cowboe/examples/benchmark>',\
             name='benchmark',listfile='list.txt',start=0)
-cowboeKS(location='/home/naveen/Desktop/forpypi/cowboe/examples/benchmark', \
+cowboeKS(location='</cowboe/examples/benchmark>', \
          listfile='list.txt', percentage = 85)
-cowboe_OVL(location='/home/naveen/Desktop/forpypi/cowboe/examples/benchmark'\
+cowboe_OVL(location='</cowboe/examples/benchmark>'\
            , listfile='list.txt', name = 'benchmark', distplot=False)
 settings_update()
 ```
