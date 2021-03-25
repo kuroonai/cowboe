@@ -46,7 +46,7 @@ setup(
    author_email='naveenovan@gmail.com, xili@mcmaster.ca',
    url="https://github.com/kuroonai/cowboe",
    py_modules=['cowboe'],  #same as name
-   #package_dir={'':'src'},
+   package_dir={'':'cowboe'},
    data_files = [("", ["LICENSE.txt"])],
    classifiers=[
    "Development Status :: 5 - Production/Stable",
