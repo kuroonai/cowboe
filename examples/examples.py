@@ -23,8 +23,7 @@ import numpy as np
 import os
 import warnings 
 
-#os.chdir('location of the examples folder ")
-os.chdir('/home/naveen/Desktop/forpypi/cowboe/examples')
+os.chdir('location of the examples folder')
 
 # uncomment the below two lines if you donot want to see the plot while running from commandline
 # matplotlib.use('Agg')
@@ -74,8 +73,8 @@ This file is same as the metadata file described in the wham documentation,
 http://membrane.urmc.rochester.edu/wordpress/?page_id=126
 
 '''
-cowboe_wham(name = 'benchmark.txt', location ='/home/naveen/Desktop/forpypi/cowboe/examples/benchmark', MCtrials = 0)
-cowboe_wham(name = '3.txt', location ='/home/naveen/Desktop/forpypi/cowboe/examples/3', MCtrials = 0)
+cowboe_wham(name = 'benchmark.txt', location ='</cowboe/examples/benchmark>', MCtrials = 0)
+cowboe_wham(name = '3.txt', location ='</cowboe/examples/3>', MCtrials = 0)
 
 cowboe_pmfplot(pmf='1.txt', name='1_pmf', splice=0)
 
@@ -224,13 +223,13 @@ cowboe3Dsurface(progressfile = 'progress.txt')
 The following functions are all used for modifying or testing the trajectory files and 
 other sampling related properties.
 '''
-cowboe_trajcut(percentage=50.0, location='/home/naveen/Desktop/forpypi/cowboe/examples/benchmark',\
+cowboe_trajcut(percentage=50.0, location='</cowboe/examples/benchmark>',\
             name='benchmark',listfile='list.txt',start=0)
             
-cowboeKS(location='/home/naveen/Desktop/forpypi/cowboe/examples/benchmark', \
+cowboeKS(location='</cowboe/examples/benchmark>', \
          listfile='list.txt', percentage = 85)
     
-cowboe_OVL(location='/home/naveen/Desktop/forpypi/cowboe/examples/benchmark'\
+cowboe_OVL(location='</cowboe/examples/benchmark>'\
            , listfile='list.txt', name = 'benchmark', distplot=False)
 '''
 On calling the below function, details on default setting and ways to modify them will be shown
