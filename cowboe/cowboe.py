@@ -60,6 +60,10 @@ Created on Mon Jan 20 15:19:02 2020
         http://xiresearch.org/        
 
 """
+__all__ = ['pmftopoints','cowboe', 'cowboefit', 'settings_update','cowboeKS', 'cowboeRNM', 'cowboeNM',\
+           'progressfile', 'NMprogress', 'cowboe3Dsurface','cowboe_wham', 'pmfcompare', 'multi_pmfcompare',\
+           'cowboe_settings', 'wham_settings', 'cowboe_trajcut', 'cowboe_OVL', 'cowboe_pmfplot', 'pmfdiff']
+
 import os
 import sys
 import math
