@@ -83,7 +83,6 @@ This file is same as the metadata file described in the wham documentation,
 http://membrane.urmc.rochester.edu/wordpress/?page_id=126
 
 '''
-cowboe_wham(name = 'benchmark.txt', location ='</cowboe/examples/benchmark>', MCtrials = 0)
 cowboe_wham(name = '3.txt', location ='</cowboe/examples/3>', MCtrials = 0)
 
 cowboe_pmfplot(pmf='1.txt', name='1_pmf', splice=0)
@@ -233,8 +232,8 @@ cowboe3Dsurface(progressfile = 'progress.txt')
 The following functions are all used for modifying or testing the trajectory files and 
 other sampling related properties.
 '''
-cowboe_trajcut(percentage=50.0, location='</cowboe/examples/benchmark>',\
-            name='benchmark',listfile='list.txt',start=0)
+cowboe_trajcut(percentage=50.0, location='</cowboe/examples/4>',\
+            name='4',listfile='list.txt',start=0)
             
 cowboeKS(location='</cowboe/examples/benchmark>', \
          listfile='list.txt', percentage = 85)
