@@ -92,7 +92,7 @@ from scipy.signal import argrelextrema as extrema
 
 font = {
         'weight' : 'bold',
-        'size'   : 10}
+        'size'   : 12}
 
 matplotlib.rc('font', **font)
 
@@ -104,21 +104,32 @@ def pmftopoints(**kwargs):
 
     Parameters
     ----------
+    location : string, mandatory
+            Location to save the pickled varible file created from the test file.
+            
     testpmf : string, mandatory
             Name of the test pmf file
+    
+    order : int
+            Order for polynomial fit
         
     Returns
     -------
     None.
 
     '''
-    freeenergyfile = kwargs['testpmf']
+    oldpath = os.getcwd()
     
-    polyfitorder = cowboe_settings["polynomial fit order"]
+    freeenergyfile = kwargs['testpmf']
+    loc = kwargs['location']
+    
+    os.chdir(loc)
+    
+    polyfitorder = kwargs.get('order',cowboe_settings["polynomial fit order"])
     N = cowboe_settings["Number of datapoints"]
     
     location = np.loadtxt(freeenergyfile)[:,0]
-    d = np.array([i for i in np.loadtxt(freeenergyfile)[:,1]])
+    d = np.array([i for i in np.loadtxt(freeenergyfile)[:,1]]) # raw free energy data
     
     
     # Removing inf values from free energy
@@ -129,33 +140,33 @@ def pmftopoints(**kwargs):
             spltice=check
             break
     
-    dnoinf = d[spltice::]
-    slopetime=location[len(d)-len(dnoinf):]
+    dnoinf = d[spltice::] #removing inf entries
+    slopetime=location[len(d)-len(dnoinf):] # xaxis value
     
     #polynomial fitting
     p = np.poly1d(np.polyfit(slopetime, dnoinf, polyfitorder))
-    d_polyfit_smoothed = p(slopetime)
+    d_polyfit_smoothed = p(slopetime) # polynomially smoothed pmf 
     d_pol_smoothed = d_polyfit_smoothed
     
     # PMF and smoothened PMF plots
-    plt.plot(slopetime,dnoinf,c='r',label='actual')
-    plt.plot(slopetime, d_pol_smoothed,c='g',label='polyfit - order = %d'%polyfitorder)
+    plt.plot(slopetime,dnoinf,c='r',label='actual') # actual pmf
+    plt.plot(slopetime, d_pol_smoothed,c='g',label='polyfit - order = %d'%polyfitorder) # smoothed pmf
     plt.xlabel(cowboe_settings['reaction coordinate unit'])
     plt.ylabel(cowboe_settings['PMF unit'])
     plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-    plt.title('PMF and smoothened curves')
+    # # plt.title('PMF and smoothened curves')
     plt.savefig('PMF-actual+polyfit.{}'.format(cowboe_settings['fig extension']),bbox_inches = 'tight')
     plt.show()
     plt.close()
     
     
     # Calculating and smoothening gradient
-    m = np.gradient(d[spltice::], slopetime[1] - slopetime[0])
-    m_pol_smooth = np.gradient(d_pol_smoothed, slopetime[1] - slopetime[0])
-    np.savetxt('pol_smooth-grad.dat', np.c_[slopetime[:],m_pol_smooth],fmt='%.4f')
+    m = np.gradient(d[spltice::], slopetime[1] - slopetime[0]) # gradient of actual pmf
+    m_pol_smooth = np.gradient(d_pol_smoothed, slopetime[1] - slopetime[0]) # gradient of smoothed pmf
+    np.savetxt('pol_smooth-grad.dat', np.c_[slopetime[:],m_pol_smooth],fmt='%.4f') # saving gradient of smoothed pmf
     pos = np.loadtxt('pol_smooth-grad.dat')[:,0]
-    grad = np.array([abs(i) for i in m])
-    Grad_pol_smooth = np.array([abs(i) for i in np.loadtxt('pol_smooth-grad.dat')[:,1]])
+    grad = np.array([abs(i) for i in m]) # abs value of gradient of actual pmf
+    Grad_pol_smooth = np.array([abs(i) for i in np.loadtxt('pol_smooth-grad.dat')[:,1]]) # abs value of gradient of smoothed pmf
     
     # Gradient and smoothened gradient plots
     plt.plot(pos,grad,c='r',label='actual')
@@ -163,13 +174,13 @@ def pmftopoints(**kwargs):
     plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     plt.xlabel(cowboe_settings['reaction coordinate unit'])
     plt.ylabel(r'$\Delta$ PMF')
-    plt.title(r'$\Delta$ PMF and smoothened curves')
-    plt.savefig('grdient-actual+polyfit.{}'.format(cowboe_settings['fig extension']),bbox_inches = 'tight')
+    # # plt.title(r'$\Delta$ PMF and smoothened curves')
+    plt.savefig('gradient-actual+polyfit.{}'.format(cowboe_settings['fig extension']),bbox_inches = 'tight')
     plt.show()
     plt.close()
     
     # Flipping the reaction coordinate
-    grad_fun_smooth = Grad_pol_smooth
+    grad_fun_smooth = Grad_pol_smooth # using abs gradient of the smoothed pmf
     y = np.flip(grad_fun_smooth)
     x = np.flip(pos)
     
@@ -189,17 +200,22 @@ def pmftopoints(**kwargs):
     extremes = np.sort(np.concatenate((crest,trough)))
     extreme_values = y[extremes].astype(float)
     
-    plt.plot(x,y)
-    plt.xlim((x[0]+1, x[-1]-1))
+    plt.plot(x[::-1],y[::-1])
+    plt.xlim((x[-1]-1, x[0]+1))
+    # plt.plot(x,y)
+    # plt.xlim((x[0]+1, x[-1]-1))
     plt.plot(x[extremes], y[extremes], '*',c ='k')
     plt.ylabel(r'$\Delta$ PMF')
     plt.xlabel(cowboe_settings['reaction coordinate unit'])
-    plt.title('Initial window guess')
+    # # plt.title('Initial window guess')
+    
     
     for exr in x[trough]:
         plt.axvline(exr,ls='--',c='r')    
     for exr in x[crest]:
         plt.axvline(exr,ls='--',c='g')   
+
+    plt.savefig('guess.{}'.format(cowboe_settings['fig extension']),bbox_inches = 'tight')
     plt.show()
     plt.close()
     
@@ -211,20 +227,25 @@ def pmftopoints(**kwargs):
     
     bounds = tuple(bounds)
     
-    with open('variables.pkl', 'wb') as f:
+    with open(os.path.join(os.sep,loc,'variables.pkl'), 'wb') as f:
         pickle.dump([x, y, extremes, extreme_values, crest, trough, bounds], f, protocol=-1)
+    
+    os.chdir(oldpath)
     
     return None
 
-def cowboe(**kwargs):
+
+def cowboelammps(**kwargs):
     '''
     cowboe algorithm for iteration and window selection
 
     Parameters
     ----------
     A = float, mandatory
-        Optimization parameter for NM algorithm and parameter 1 of cowboe.
-        
+        Optimization parameter 'A' for NM algorithm and parameter 1 of cowboe.
+    
+    B = float
+        parameter 'B' for the cowboe equation
         
     V = float, mandatory
         Optimization parameter for NM algorithm which controls energy 
@@ -236,7 +257,13 @@ def cowboe(**kwargs):
         
     name = str, mandatory
         Name of the point being evaluated
-
+        
+    subtype = str, mandatory
+        Name of the sub type of the system
+        
+    location = string, mandatory
+            Location of the pickled variable file created from the test file in pmftopoints().
+        
     Returns
     -------
     None.
@@ -250,11 +277,11 @@ def cowboe(**kwargs):
         
         '''
         Windows = windows.copy()
-        startw = cowboe_settings["conv. min of last window"]
-        endw = cowboe_settings["conv. min of 1st window"]
+        # startw = cowboe_settings["conv. min of last window"]
+        # endw = cowboe_settings["conv. min of 1st window"]
     
         
-        Windows[0], Windows[-1]= startw, endw
+        # Windows[0], Windows[-1]= startw, endw
         
         
         
@@ -269,6 +296,7 @@ def cowboe(**kwargs):
         plt.xlabel(cowboe_settings["reaction coordinate unit"])
         plt.title('conventional harmonic potential')
         plt.savefig('nativepotential.{}'.format(cowboe_settings['fig extension']),bbox_inches = 'tight')
+        plt.show()
         plt.close()
         
         def forceconstant(w):
@@ -297,14 +325,14 @@ def cowboe(**kwargs):
         plt.ylabel(r'$\Delta$ V')
         plt.xlabel(cowboe_settings["reaction coordinate unit"])
         plt.title('Potential from cowboe')
-        plt.savefig('native_window_potential_%.2f_%.2f.%s' % (A, B, cowboe_settings['fig extension']), bbox_inches = 'tight')
+        plt.savefig('native_window_potential_%.4f_%.4f.%s' % (A, B, cowboe_settings['fig extension']), bbox_inches = 'tight')
         plt.show()
         plt.close()
         
         Ms =[]
         k = kgiven
         ww = cowboe_settings["conventional window width"]
-        for M in np.arange(cowboe_settings["conv. min of 1st window"],cowboe_settings["conv. min of last window"],ww):
+        for M in np.arange(cowboe_settings["conv. min of 1st window"],cowboe_settings["conv. min of last window"]+0.1,ww):
             Ms.append(windowsplot(k,M-ww,M+ww))
         
         
@@ -313,7 +341,7 @@ def cowboe(**kwargs):
         plt.ylabel(r'$\Delta$ V')
         plt.xlabel(cowboe_settings["reaction coordinate unit"])
         plt.title('conventional potential')
-        plt.savefig('native_window_potential_all_%.2f_%.2f.%s' % (A, B, cowboe_settings['fig extension']),bbox_inches = 'tight')
+        plt.savefig('native_window_potential_all_%.4f_%.4f.%s' % (A, B, cowboe_settings['fig extension']),bbox_inches = 'tight')
         plt.show()
         plt.close()
         
@@ -326,23 +354,87 @@ def cowboe(**kwargs):
         plt.xticks(np.arange(len(np.diff(Windows[::-1]))))
         plt.xlabel('Window')
         plt.title('Windows/force constant - cowboe')
-        plt.savefig('new_window_potential_%.2f_%.2f.%s' % (A, B, cowboe_settings['fig extension']),bbox_inches = 'tight')
+        plt.savefig('new_window_potential_%.4f_%.4f.%s' % (A, B, cowboe_settings['fig extension']),bbox_inches = 'tight')
         plt.show()
         plt.close()
         
         np.savetxt('K-{}-{}.dat'.format(A,B), np.c_[range(len(K)), K])
         
         return K, Windows, Mss
-
-
     
+    def writeinputdic(pointname, server, A, B, V, windows):
+    
+    
+        if server == 'cedar' :
+            tc = 192
+            sf = '/scratch/vasudevn/OPT/equal'
+        elif server == 'graham' : 
+            tc = 160
+            sf = '/project/6003277/vasudevn/OPT/equal'
+        elif server == 'beluga' : 
+            tc = 160
+            sf = '/lustre04/scratch/vasudevn/OPT/equal'
+        elif server == 'niagara': 
+            tc = 160
+            sf = '/gpfs/fs0/scratch/x/xili/vasudevn/OPT/equal'
+    
+    
+        if server == 'cedar' :
+            tc = 192
+            sf = '/scratch/vasudevn/OPT/equal/BENCHMARK_CONVENTIONAL'
+        elif server == 'graham' : 
+            tc = 160
+            sf = '/project/6003277/vasudevn/OPT/equal/BENCHMARK_CONVENTIONAL'
+        elif server == 'beluga' : 
+            tc = 160
+            sf = '/lustre04/scratch/vasudevn/OPT/equal/BENCHMARK_CONVENTIONAL'
+        elif server == 'niagara': 
+            tc = 160
+            sf = '/gpfs/fs0/scratch/x/xili/vasudevn/OPT/equal/BENCHMARK_CONVENTIONAL'
+        
+        A = str(A)
+        B = str(B)
+        V = str(V)
+        
+        print("p%s_%s = {\n\
+        'A'             :%s,\n\
+        'B'             :%s,\n\
+        'V'             :%s,\n\
+        'wins'          :%d,\n\
+        'sc'            :%d,\n\
+        'lmr'           :'/A=%s_B=%s_V=%s.txt',\n\
+        'subloc'        :'%s/%s',\n\
+        'loc'           :'/media/sf_dive/Research_work/afinalpaperrun/analysis/OPT/test/algorithm/bvn/%s',\n\
+        'datafileloc'   :'/media/sf_dive/Research_work/afinalpaperrun/analysis/OPT/test/algorithm/datafiles/%s',\n\
+        'outputloc'     :'/media/sf_dive/Research_work/afinalpaperrun/analysis/OPT/test/algorithm/folder',\n\
+        'server'        :'%s',\n\
+        'total_cpu'     :%d,\n\
+        'pair'          :16.0,\n\
+        'skin'          :2.0 ,\n\
+        'ts'            :2,\n\
+        'kspace'        :'pppm 1e-6',\n\
+        'mpc'           :512,\n\
+        'mail'          :'TRUE',\n\
+        'ringcoms'      :'TRUE',\n\
+        'traj'          :'TRUE',\n\
+        'f'             :['%s'],\n\
+        'subtype'       :'%s',\n\
+        'justsh'        :'nd'\n\
+                }"%(pointname,server,A,B,V,len(windows)-1,samplingconsidered,\
+              A,B,V,sf,pointname,pointname,subtype,server,tc,pointname,subtype))
+
     iniloc = os.getcwd()
     
     A                   = kwargs['A']
-    B                   = cowboe_settings['param B']
+    B                   = kwargs.get('B', cowboe_settings['param B'])                    
     V                   = kwargs['V']
     samplingconsidered  = kwargs['sc']
     name                = kwargs['name']
+    subtype             = kwargs['subtype']
+    location            = kwargs['location']
+    equalsampling       = kwargs.get('equal_sampling', cowboe_settings['equal_sampling'])
+    rcstart             = kwargs.get('rcstart', cowboe_settings["conv. min of 1st window"])  
+    rcstop              = kwargs.get('rcstop', cowboe_settings["conv. min of last window"])
     
     def Kgiven(v):
         return v*2/cowboe_settings['conventional window width']**2
@@ -384,8 +476,8 @@ def cowboe(**kwargs):
 
         extremes = np.sort(np.concatenate((crest, trough)))
 
-        plt.plot(x, y)
-        plt.xlim((x[0]+1, x[-1]-1))
+        plt.plot(x[::-1], y[::-1])
+        plt.xlim((x[-1]-1, x[0]+1))
         plt.plot(x[extremes], y[extremes], '*', c='k')
         plt.ylabel(r'$\Delta$ PMF')
         plt.xlabel(cowboe_settings['reaction coordinate unit'])
@@ -397,7 +489,7 @@ def cowboe(**kwargs):
         for exr in x[crest]:
             plt.axvline(exr, ls='--', c='g')
 
-        plt.savefig('up and down_%.2f_%.2f.%s' % (A, B, cowboe_settings['fig extension']), bbox_inches='tight', dpi=300)
+        plt.savefig('up and down_%.4f_%.4f.%s' % (A, B, cowboe_settings['fig extension']), bbox_inches='tight', dpi=300)
         plt.title('A = %.4f & B = %.4f - initial guess' %(A,B))
         plt.show()
         plt.close()
@@ -412,7 +504,7 @@ def cowboe(**kwargs):
     else:
         os.mkdir(loc), os.chdir(loc)
 
-    with open('../variables.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
+    with open(os.path.join(os.sep,location,'variables.pkl'), 'rb') as f:  # Python 3: open(..., 'rb')
         x, y, extremes, extreme_values, crest, trough, bounds = pickle.load(f)
 
     ini_plot(extremes, crest, trough)
@@ -435,10 +527,10 @@ def cowboe(**kwargs):
     Rcalc = start - ww(current_max)
 
     file = True
-    if os.path.isfile('LOG_%.2f_%.2f.dat' % (A, B)): os.remove('LOG_%.2f_%.2f.dat' % (A, B))
+    if os.path.isfile('LOG_%.4f_%.4f.dat' % (A, B)): os.remove('LOG_%.4f_%.4f.dat' % (A, B))
     if file:
 
-        f = open('LOG_%.2f_%.2f.dat' % (A, B), 'w')
+        f = open('LOG_%.4f_%.4f.dat' % (A, B), 'w')
         oldstdout = sys.stdout
         sys.stdout = f
 
@@ -551,34 +643,39 @@ def cowboe(**kwargs):
     ###########################
 
     windows = np.flip(np.unique(np.array(windows)))
-    plt.plot(x, y)
+    plt.plot(x[::-1], y[::-1])
 
     for exr in windows:
         plt.axvline(exr, ls='--', c='r')
 
     plt.xticks(windows, rotation=90)
-    plt.xlim(x[0]+1, x[-1]-1)
-    plt.title('A = %.2f & B = %.2f - from cowboe' %(A,B))
+    plt.xlim((x[-1]-1, x[0]+1))
+    plt.title('A = %.4f & B = %.4f - from cowboe' %(A,B))
     plt.ylabel(r'$\Delta$ PMF')
     plt.xlabel(cowboe_settings['reaction coordinate unit'])
     plt.show()
     plt.close()
     
     Windows = windows.copy()
-    startw = cowboe_settings["conv. min of last window"]
-    endw = cowboe_settings["conv. min of 1st window"]
+    # startw = cowboe_settings["conv. min of last window"]
+    # endw = cowboe_settings["conv. min of 1st window"]
 
 
-    Windows[0], Windows[-1]= startw, endw
+    # Windows[0], Windows[-1]= startw, endw
 
     Rpos = np.array(Windows) #np.array(np.flip(windows))
     Windowwidth = np.diff(Rpos)
-
-    total = cowboe_settings['conventional no of windows'] * samplingconsidered  # ns
+    
+    #total = cowboe_settings['conventional no of windows'] * samplingconsidered
+    
+    total = ( (rcstop - rcstart) / ((cowboe_settings["conv. min of last window"] + \
+                                   cowboe_settings["conventional window width"]) - \
+                                  (cowboe_settings["conv. min of 1st window"] - \
+                                   cowboe_settings["conventional window width"])) ) * (cowboe_settings['conventional no of windows'] * samplingconsidered ) # ns
     # total = 24*4000000*2 #24 windows - 5000000 2fs steps 10 ns
     #Samplingtime = [int((i*total)/(sum(Windowwidth)*400000)) for i in Windowwidth]
     
-    if cowboe_settings['equal_sampling']:
+    if equalsampling:
         wminus1 = len(windows)-1
         Samplingtime = list(np.full((wminus1,), float(total/wminus1)))
     else:
@@ -591,7 +688,7 @@ def cowboe(**kwargs):
     plt.xlim(-0.25, len(windows)-1.25)
     plt.ylabel('ns', fontsize=14, weight='bold')
     plt.xlabel('Windows', fontsize=14, weight='bold')
-    plt.title('A = %.2f & B = %.2f - sampling/window' %(A,B))
+    plt.title('A = %.4f & B = %.4f - sampling/window' %(A,B))
     plt.show()
     plt.close()
 
@@ -624,21 +721,21 @@ def cowboe(**kwargs):
 
     newpositions.insert(0, x[0])
 
-    plt.plot(x, y)
+    plt.plot(x[::-1], y[::-1])
     for exr in windows:
         plt.axvline(exr, ls='--', c='r')
 
     plt.xticks(windows, rotation=90)
-    plt.xlim(x[0]+1, x[-1]-1)
+    plt.xlim((x[-1]-1, x[0]+1))
 
     for exr in newpositions:
         plt.axvline(exr, ls='--', c='g')
 
-    plt.xlim(x[0]+1, x[-1]-1)
+    #plt.xlim((x[-1]-1, x[0]+1))
     plt.ylabel(r'$\Delta$ PMF')
     plt.xlabel(cowboe_settings['reaction coordinate unit'])
-    plt.savefig('alligned_%.2f_%.2f.%s' % (A, B, cowboe_settings['fig extension']), bbox_inches='tight', dpi=300)
-    plt.title('A = %.2f & B = %.2f - cowboe vs. brute check' %(A,B))
+    plt.savefig('alligned_%.4f_%.4f.%s' % (A, B, cowboe_settings['fig extension']), bbox_inches='tight', dpi=300)
+    plt.title('A = %.4f & B = %.4f - cowboe vs. brute check' %(A,B))
     plt.show()
     plt.close()
 
@@ -656,7 +753,515 @@ def cowboe(**kwargs):
         plt.plot(list(actualww - abs(np.diff(windows))), marker='*', c='k',markersize = 8)
     plt.xticks(np.arange(0,len(windows)-1))
     plt.title('diff. cowboe vs. brute')
-    plt.savefig('difference_%.2f_%.2f.%s' % (A, B, cowboe_settings['fig extension']),bbox_inches = 'tight')
+    plt.savefig('difference_%.4f_%.4f.%s' % (A, B, cowboe_settings['fig extension']),bbox_inches = 'tight')
+    plt.show()
+    plt.close()
+    
+
+    K, Windows, Mss = Kcalc(windows, A, B, V, kgiven)
+    
+    print('\n',pd.DataFrame(np.c_[np.flip(actualww), np.flip(abs(np.diff(windows))), np.flip(actualww - abs(np.diff(windows)))], columns=['Theoritical', 'Actual', 'diff']))
+
+    print('\n',pd.DataFrame(np.c_[np.flip(newpositions), np.flip(windows), np.flip(Windows)], columns=['Theoritical', 'Actual', 'For K']))
+    
+    print('\n',pd.DataFrame(np.c_[range(len(K)), K], columns=['Window', 'Force constant']))
+    
+    print('\n\nTotal number of windows = {}\n'.format(len(windows)-1))
+    
+    forsim = pd.DataFrame(np.c_[np.flip(Windows)[:-1], np.array(Mss) ,np.flip(Windows)[1:], K, np.array(Samplingtime[::-1]) ], columns=['Left', 'Middle', 'Right', 'Force constant','Sampling time'])
+    print('\n',forsim)
+    np.savetxt('A={}_B={}_V={}.txt'.format(A,B,V), np.c_[np.flip(Windows)[:-1], np.array(Mss) ,np.flip(Windows)[1:], K, np.array(Samplingtime[::-1])], \
+               header ='Total number of windows = {}\nSampling time considered = {} ns - for 24 windows\n\
+               left\tmiddle\tright\tforce constant\tSampling time'.format(len(windows)-1,samplingconsidered))
+    np.save('A = {}_B = {}_V={}'.format(A,B,V), np.c_[np.flip(Windows)[:-1], np.array(Mss) ,np.flip(Windows)[1:], K, np.array(Samplingtime[::-1])])
+
+    
+    
+    if file:
+        f.close()
+        sys.stdout = oldstdout
+    sys.stdout = oldstdout
+    
+    
+    print('\n',pd.DataFrame(np.c_[np.flip(actualww), np.flip(abs(np.diff(windows))), np.flip(actualww - abs(np.diff(windows)))], columns=['Theoritical', 'Actual', 'diff']))
+    
+    print('\n',pd.DataFrame(np.c_[np.flip(newpositions), np.flip(windows), np.flip(Windows)], columns=['Theoritical', 'Actual', 'For K']))
+    
+    print('\n',pd.DataFrame(np.c_[range(len(K)), K], columns=['Window', 'Force constant']))
+    
+    print('\n\nTotal number of windows = {}\n'.format(len(windows)-1))
+    
+    print('\n',forsim)
+    np.savetxt('A={}_B={}_V={}.txt'.format(A,B,V), np.c_[np.flip(Windows)[:-1], np.array(Mss) ,np.flip(Windows)[1:], K, np.array(Samplingtime[::-1])], \
+               header ='Total number of windows = {}\nSampling time considered = {} ns - for 24 windows\n\
+               left\tmiddle\tright\tforce constant\tSampling time'.format(len(windows)-1,samplingconsidered))
+    np.save('A={}_B={}_V={}'.format(A,B,V), np.c_[np.flip(Windows)[:-1], np.array(Mss) ,np.flip(Windows)[1:], K, np.array(Samplingtime[::-1])])
+
+    os.chdir(iniloc)
+    
+    print('\nDone!')
+    
+    print('\n')
+    writeinputdic(pointname,'graham',A,B,V,windows)
+    print('\n')
+    writeinputdic(pointname,'cedar',A,B,V,windows)
+    print('\n')
+    writeinputdic(pointname,'beluga',A,B,V,windows)
+    print('\n')
+    writeinputdic(pointname,'niagara',A,B,V,windows)
+    print('\n')
+
+    return None
+
+
+
+def cowboe(**kwargs):
+    '''
+    cowboe algorithm for iteration and window selection
+
+    Parameters
+    ----------
+    A = float, mandatory
+        Optimization parameter for NM algorithm and parameter 1 of cowboe.
+        
+        
+    V = float, mandatory
+        Optimization parameter for NM algorithm which controls energy 
+        barrier.
+    
+    sc = int, mandatory
+        Sampling considered for each windows in conventional method
+        in nano seconds e.g. 8 ns
+        
+    name = str, mandatory
+        Name of the point being evaluated
+    
+    location = string, mandatory
+            Location of the pickled variable file created from the test file in pmftopoints().
+            
+    Returns
+    -------
+    None.
+
+    '''
+    def Kcalc(windows, A, B, V, kgiven):
+        '''
+        Calculates the V and K values for the conventional Umbrella sampling.
+        V = 0.5 * K * (X - X0)**2
+        K = 2*V/(X-X0)**2
+        
+        '''
+        Windows = windows.copy()
+        startw = cowboe_settings["conv. min of last window"]
+        endw = cowboe_settings["conv. min of 1st window"]
+    
+        
+        Windows[0], Windows[-1]= startw, endw
+        
+        
+        
+        V_x = np.linspace(-0.5,0.5,100)
+        t_V = [ 0.5*kgiven*(0-i)**2 for i in V_x]
+        plt.plot(V_x, t_V)
+        plt.axvline(0.0, linestyle='-.', c='k')
+        plt.axvline(-0.5, linestyle='--', c='r')
+        plt.axvline(0.5, linestyle='--', c='r')
+        plt.axhline(t_V[0], linestyle=':', c='g')
+        plt.ylabel(r'$\Delta$ V')
+        plt.xlabel(cowboe_settings["reaction coordinate unit"])
+        # plt.title('conventional harmonic potential')
+        plt.savefig('nativepotential.{}'.format(cowboe_settings['fig extension']),bbox_inches = 'tight')
+        plt.show()
+        plt.close()
+        
+        def forceconstant(w):
+            wwidth = np.diff(w[::-1])
+            k = [2.0*V/(width/2.0)**2 for width in wwidth]
+            v = [0.5 * kk * (width/2.0)**2 for kk,width in zip(k,wwidth)]
+            return k,v
+        
+        K, Vs = forceconstant(Windows)
+        
+        def windowsplot(k, L, R):
+            V_x = np.linspace(L,R,100)
+            M = (R+L)/2
+            dV = [ 0.5*k*(i - M)**2 for i in V_x]
+            plt.plot(V_x, dV)
+            plt.axvline(M, linestyle='-.', linewidth=0.5,c='k')
+            return M
+        
+        Mss = []
+        for k, L, Ri in zip(K, Windows[::-1][:-1], Windows[::-1][1:]):
+            Mss.append(windowsplot(k,L,Ri))
+        
+        
+        plt.axhline(V, linestyle='--', c='r')    
+        plt.xticks(Mss, rotation=90)
+        plt.ylabel(r'$\Delta$ V')
+        plt.xlabel(cowboe_settings["reaction coordinate unit"])
+        # # plt.title('Potential from cowboe')
+        plt.savefig('cowboe_window_potential_%.4f_%.4f.%s' % (A, B, cowboe_settings['fig extension']), bbox_inches = 'tight')
+        plt.show()
+        plt.close()
+        
+        Ms =[]
+        k = kgiven
+        ww = cowboe_settings["conventional window width"]
+        for M in np.arange(cowboe_settings["conv. min of 1st window"],cowboe_settings["conv. min of last window"],ww):
+            Ms.append(windowsplot(k,M-ww,M+ww))
+        
+        
+        plt.axhline(0.5*k*ww**2, linestyle='--', c='r')   
+        plt.xticks(Ms, rotation=90)
+        plt.ylabel(r'$\Delta$ V')
+        plt.xlabel(cowboe_settings["reaction coordinate unit"])
+        # # plt.title('conventional potential')
+        plt.savefig('native_window_potential_all_%.4f_%.4f.%s' % (A, B, cowboe_settings['fig extension']),bbox_inches = 'tight')
+        plt.show()
+        plt.close()
+        
+        
+        fig, (ax1,ax2) = plt.subplots(2, sharex=True, figsize=(10,5))
+        ax1.bar(np.arange(len(np.diff(Windows[::-1]))), np.diff(Windows[::-1]), color='r')
+        ax2.bar(np.arange(len(np.diff(Windows[::-1]))), K, color='g')
+        ax1.set(ylabel='Width')
+        ax2.set(ylabel='K')
+        plt.xticks(np.arange(len(np.diff(Windows[::-1]))))
+        plt.xlabel('Window')
+        # # plt.title('Windows/force constant - cowboe')
+        plt.savefig('new_window_potential_%.4f_%.4f.%s' % (A, B, cowboe_settings['fig extension']),bbox_inches = 'tight')
+        plt.show()
+        plt.close()
+        
+        np.savetxt('K-{}-{}.dat'.format(A,B), np.c_[range(len(K)), K])
+        
+        return K, Windows, Mss
+
+
+    
+    iniloc = os.getcwd()
+    
+    A                   = kwargs['A']
+    B                   = cowboe_settings['param B']
+    V                   = kwargs['V']
+    samplingconsidered  = kwargs['sc']
+    name                = kwargs['name']
+    location            = kwargs['location']
+    
+    def Kgiven(v):
+        return v*2/cowboe_settings['conventional window width']**2
+    
+    kgiven = Kgiven(V)
+    
+    def ww(Fmax):
+
+        return round(1/((Fmax/A) + (1/B)), 6)
+    
+
+    def close(array_to_check, value):
+        return min(enumerate(array_to_check), key=lambda s: abs(s[1] - value))
+
+    def narrow(array_to_check, value):
+
+        if array_to_check[0] < array_to_check[-1]:
+            Arr = np.array([entry-value for entry in array_to_check])
+
+            l, r = list(Arr).index(max(Arr[Arr <= 0])), list(
+                Arr).index(min(Arr[Arr >= 0]))
+
+            return l, r
+
+        elif array_to_check[0] > array_to_check[-1]:
+            Arr = np.array([entry-value for entry in array_to_check])
+
+            l, r = list(Arr).index(max(Arr[Arr <= 0])), list(
+                Arr).index(min(Arr[Arr >= 0]))
+
+            return r, l
+
+    def currentmax(begin, end):
+        c_max = max(y[begin:end+1])
+        return c_max
+
+
+    def ini_plot(extremes, crest, trough):
+
+        extremes = np.sort(np.concatenate((crest, trough)))
+
+        plt.plot(x[::-1], y[::-1])
+        plt.xlim((x[-1]-1, x[0]+1))
+        plt.plot(x[extremes], y[extremes], '*', c='k')
+        plt.ylabel(r'$\Delta$ PMF')
+        plt.xlabel(cowboe_settings['reaction coordinate unit'])
+
+
+        for exr in x[trough]:
+            plt.axvline(exr, ls='--', c='r')
+
+        for exr in x[crest]:
+            plt.axvline(exr, ls='--', c='g')
+
+        plt.savefig('up and down_%.4f_%.4f.%s' % (A, B, cowboe_settings['fig extension']), bbox_inches='tight', dpi=300)
+        # # plt.title('A = %.4f & B = %.4f - initial guess' %(A,B))
+        plt.show()
+        plt.close()
+
+
+    
+    pointname = name #input('\nEnter name of the point (e.g. 1):\t')
+    loc = '{}'.format(pointname)
+
+    if os.path.isdir(loc):
+        os.chdir(loc)
+    else:
+        os.mkdir(loc), os.chdir(loc)
+
+    with open(os.path.join(os.sep,location,'variables.pkl'), 'rb') as f:  # Python 3: open(..., 'rb')
+        x, y, extremes, extreme_values, crest, trough, bounds = pickle.load(f)
+
+    ini_plot(extremes, crest, trough)
+    seg = abs(np.diff(x)[0])
+    f = inp(x, y, kind='cubic')  # used to interpolate function
+
+    # ALGORITHM
+
+    R = 0
+    start = x[R]
+    current_max = y[R]
+    windows = []
+    Rs = []
+    windows.append(start)
+    Rs.append(R)
+
+    dextremes = dict.fromkeys(crest, 'P')
+    dextremes.update(dict.fromkeys(trough, 'V'))
+
+    Rcalc = start - ww(current_max)
+
+    file = True
+    if os.path.isfile('LOG_%.4f_%.4f.dat' % (A, B)): os.remove('LOG_%.4f_%.4f.dat' % (A, B))
+    if file:
+
+        f = open('LOG_%.4f_%.4f.dat' % (A, B), 'w')
+        oldstdout = sys.stdout
+        sys.stdout = f
+
+    whilec = -1
+    while R <= len(x):
+        whilec += 1
+        print('\nFor window - {} \n\tstart: {} \twith\t x: {:.6f}'.format(whilec, R, x[R]))
+        eranges = np.array([e for e in extremes if x[e] < x[R]])
+        print('\tExtreme search range: \n\t\t{}'.format(eranges))
+        direction = dict.fromkeys(eranges, 'N')
+        print('\tDirection: Made all neutral("N")')
+        
+    
+        for e in eranges:
+            print('\n\t\tFor loop with "e" value: ',e)
+            Rguess = x[e]
+            Rcalc = x[R] - ww(max(y[R:e+1]))
+            print('\t\tsearching for max between %d - %d'%(R, e))
+            print('\t\tMax value in range is: {:.6f} at {}'.format(max(y[R:e+1]), R+np.argmax(y[R:e+1])))
+            print('\t\tThe resulting Width: {}'.format(ww(max(y[R:e+1]))))
+            print('\t\tRguess: {:.6f} \t Rcalc: {:.6f}'.format(Rguess, Rcalc))
+            
+                            
+            if Rguess > Rcalc:
+                direction[e] = 'R'
+                print('\t\tBound is to the right..\n\t\tcontinue..\n')
+                continue
+            elif Rguess < Rcalc:
+                direction[e] = 'L'
+                print('\t\tBound is to the left..\n\t\tStopping direction sweep..')
+                break
+
+        ir = e 
+        il = extremes[ narrow(extremes, e)[0] - 1]
+        if il > R : il = il
+        elif il <= R : il = R
+        print('\n\t\tLeft: {} \t Right: {}\n'.format(il,ir))
+                
+        print(pd.DataFrame(np.c_[range(R,ir+1),x[R:ir+1], y[R:ir+1], [ww(ic) for ic in y[R:ir+1]]], columns=['Index', 'X', 'Y', 'WW']))
+        
+        inwhilec = 0
+        while True:
+                inwhilec += 1
+                print('\n\t\tInner While: {}'.format(inwhilec))
+                #print(R)
+                time.sleep(0)
+                im = math.floor((il+ir)/2)    
+                if im == len(x)-1: break
+                Rg = x[im]
+                if R != im+1: 
+                    Rc = x[R] - ww(max(y[R:im+1]))
+                    print('\t\t\tInitial il: {}\tim: {}\tir: {}'.format(il,im,ir))    
+                    print('\t\t\tsearching for max between %d - %d'%(R, im))
+                    print('\t\t\tMax value in range is: {:.6f} at {}'.format(max(y[R:im+1]), R+np.argmax(y[R:im+1])))
+                    print('\t\t\tThe resulting Width: {:.6f}'.format(ww(max(y[R:im+1]))))
+                    print('\t\t\tMid: {}\t\tRc: {:.6f}\t\tRg: {:.6f}'.format(im,Rc,Rg))
+                else :
+                    Rc = x[R] - ww(y[R])
+                    print('\t\t\tInitial il: {}\tim: {}\tir: {}'.format(il,im,ir))    
+                    print('\t\t\tsearching for max between %d - %d'%(R, im))
+                    print('\t\t\tMax value in range is: {:.6f} at {}'.format(y[R], R))
+                    print('\t\t\tThe resulting Width: {:.6f}'.format(ww(y[R])))
+                    print('\t\t\tMid: {}\t\tRc: {:.6f}\t\tRg: {:.6f}'.format(im,Rc,Rg))
+                
+                if Rg > Rc:
+                    print('\n\t\t\tRg > Rc: Rg is to the left of calculated\n\t\t\tContinue..\n')
+                    time.sleep(0)
+                    il = im
+                    print('\t\t\tMid point is new Left..')
+                    
+                    if ir - il == 1 :
+                        print('\t\t\tConsecutive points({},{}) have diff direction\n\t\t\tBreaking loop..\n'.format(il,ir))
+                        print('\t\t\tY values of consecutive points are il: {:.6f} and ir {:.6f}\n\n'.format(y[il],y[ir]))
+                        break
+                    else: continue
+                    
+                elif Rg < Rc:
+                    print('\n\t\t\tRg < Rc: Rg is to the right of calculated')
+                    time.sleep(0)
+                    ir = im
+                    print('\t\t\tMid point is new Right..')
+                    if ir - il == 1:
+                        print('\t\t\tConsecutive points ({},{}) have diff direction\n\t\t\tBreaking loop..\n'.format(il,ir))
+                        print('\t\t\tY values of consecutive points are il: {:.6f} and ir {:.6f}\n\n'.format(y[il],y[ir]))
+                        time.sleep(0)
+                        break
+    
+                if Rc < x[-1] : break
+                if im == len(x)-1: break
+            
+        if im == len(x)-1: break
+                
+        if abs(Rc - x[il]) > abs(Rc - x[ir]) :
+            R = ir
+        elif abs(Rc - x[il]) < abs(Rc - x[ir]) :
+            R = il
+        
+                
+        print('\t\t\tFinal il: {}\tim: {}\tir: {}'.format(il,im,ir))    
+        windows.append(x[R])
+        Rs.append(R)
+        print('\t\t\tAppending {:.6f} as window end'.format(x[R]))
+        print('\t\t\tR value for next iteration is {}'.format(R))
+        print('\nWindow {} is between {:.6f} - {:.6f} at {} - {}'.format(whilec, windows[-2], windows[-1], Rs[-2], Rs[-1]))
+        
+        
+        print('\n\nTotal number of windows = {}\n'.format(len(windows)-1))
+    
+    
+    ###########################
+
+    windows = np.flip(np.unique(np.array(windows)))
+    plt.plot(x[::-1], y[::-1])
+
+    for exr in windows:
+        plt.axvline(exr, ls='--', c='r')
+
+    plt.xticks(windows, rotation=90)
+    plt.xlim((x[-1]-1, x[0]+1))
+    # # plt.title('A = %.4f & B = %.4f - from cowboe' %(A,B))
+    plt.ylabel(r'$\Delta$ PMF')
+    plt.xlabel(cowboe_settings['reaction coordinate unit'])
+    plt.savefig('cowboe_converged_%.4f_%.4f.%s' % (A,B,cowboe_settings['fig extension']), bbox_inches='tight', dpi=300)
+    plt.show()
+    plt.close()
+    
+    Windows = windows.copy()
+    startw = cowboe_settings["conv. min of last window"]
+    endw = cowboe_settings["conv. min of 1st window"]
+
+
+    Windows[0], Windows[-1]= startw, endw
+
+    Rpos = np.array(Windows) #np.array(np.flip(windows))
+    Windowwidth = np.diff(Rpos)
+
+    total = cowboe_settings['conventional no of windows'] * samplingconsidered  # ns
+    # total = 24*4000000*2 #24 windows - 5000000 2fs steps 10 ns
+    #Samplingtime = [int((i*total)/(sum(Windowwidth)*400000)) for i in Windowwidth]
+    
+    if cowboe_settings['equal_sampling']:
+        wminus1 = len(windows)-1
+        Samplingtime = list(np.full((wminus1,), float(total/wminus1)))
+    else:
+        fracsamplingtime = [i/sum(Windowwidth) for i in Windowwidth]
+        Samplingtime = [(j*total) for j in fracsamplingtime]
+
+
+
+    plt.plot(Samplingtime[::-1], 'r^--')
+    plt.xlim(-0.25, len(windows)-1.25)
+    plt.ylabel('ns', fontsize=14, weight='bold')
+    plt.xlabel('Windows', fontsize=14, weight='bold')
+    # # plt.title('A = %.4f & B = %.4f - sampling/window' %(A,B))
+    plt.show()
+    plt.close()
+
+    # check loop - window width comparison
+
+    actualind = [close(x, i)[0] for i in windows]
+
+    def boundary(indarray):
+        bounds = []
+        for ext_ind, ext in enumerate(indarray[:-1]):
+            newpair = np.arange(indarray[ext_ind], indarray[ext_ind+1]+1)
+            bounds.append(np.array(newpair))
+
+        return np.array(bounds, dtype=object)
+
+    bounds = boundary(actualind)
+
+    print('\n')
+    for bound in bounds:
+        print(bound)
+    print('\n')
+
+    maximums = []
+    for bound in bounds:
+        maximum = max(y[bound])
+        maximums.append(maximum)
+
+    actualww = [ww(j) for j in maximums]
+    newpositions = [ wws-ac for ac, wws in zip(actualww, windows[:-1])]
+
+    newpositions.insert(0, x[0])
+
+    plt.plot(x[::-1], y[::-1])
+    for exr in windows:
+        plt.axvline(exr, ls='--', c='r')
+
+    plt.xticks(windows, rotation=90)
+    plt.xlim((x[-1]-1, x[0]+1))
+
+    for exr in newpositions:
+        plt.axvline(exr, ls='--', c='g')
+
+    plt.xlim((x[-1]-1, x[0]+1))
+    plt.ylabel(r'$\Delta$ PMF')
+    plt.xlabel(cowboe_settings['reaction coordinate unit'])
+    plt.savefig('alligned_%.4f_%.4f.%s' % (A, B, cowboe_settings['fig extension']), bbox_inches='tight', dpi=300)
+    # # plt.title('A = %.4f & B = %.4f - cowboe vs. brute check' %(A,B))
+    plt.show()
+    plt.close()
+
+
+    print('\n', pd.DataFrame(np.c_[actualww, abs(np.diff(windows)), actualww - abs(
+        np.diff(windows))], columns=['From Max', 'From calc', 'Abs. diff']))
+    print('\n',pd.DataFrame(np.c_[newpositions, windows], columns=['Theoritical', 'Actual']))
+
+    plt.axhline(y=abs(np.diff(x)[0]), linestyle='--', c='r')
+    plt.axhline(y=np.diff(x)[0], linestyle='--', c='r')
+    Ers = list(actualww - abs(np.diff(windows)))
+    if abs(Ers[-1]) > seg:
+       plt.plot(Ers[:-1], marker='*', c='k',markersize = 8)
+    else:
+        plt.plot(list(actualww - abs(np.diff(windows))), marker='*', c='k',markersize = 8)
+    plt.xticks(np.arange(0,len(windows)-1))
+    # # plt.title('diff. cowboe vs. brute')
+    plt.savefig('difference_%.4f_%.4f.%s' % (A, B, cowboe_settings['fig extension']),bbox_inches = 'tight')
     plt.show()
     plt.close()
     
@@ -723,6 +1328,18 @@ def cowboe_wham(**kwargs):
     MCtrials : int
         Number of Monte Carlo trails (for bootstrapping). set to 0 if no bootstrapping
         error analysis is required.
+    hist_min: float
+        Minimum value for the histogram
+    hist_max : float
+        Maximum value for the histogram
+    num_bins : int
+        Total number of bins
+    tol : float
+        Tolerance for the decimal places
+    numpad : int
+        Numpad value for wham calculation
+    metadatafile : string
+        Name of the metadata file
 
     Returns
     -------
@@ -731,20 +1348,19 @@ def cowboe_wham(**kwargs):
     '''
     currentdir = os.getcwd()
     
-    freefile    = kwargs['name']
+    freefile    = kwargs.get('name', 'cowboe_pmf_output.txt')
     loc         = kwargs['location']
-    MCnum       = kwargs['MCtrials']
+    MCnum       = kwargs.get('MCtrials', 0)
     
     os.chdir(loc)
     
-    try: metadatafile = kwargs['metadatafile']
-    except:metadatafile = wham_settings["metadatafile"]
-    hist_min            = wham_settings["hist_min"]
-    hist_max            = wham_settings["hist_max"]
-    num_bins            = wham_settings["num_bins"]
-    tol                 = wham_settings["tol"]
-    temp                = wham_settings["temp"]
-    numpad              = wham_settings["numpad"]
+    metadatafile        = kwargs.get('metadatafile', wham_settings["metadatafile"])
+    hist_min            = kwargs.get('hist_min', wham_settings["hist_min"])
+    hist_max            = kwargs.get('hist_max', wham_settings["hist_max"])
+    num_bins            = kwargs.get('num_bins', wham_settings["num_bins"])
+    tol                 = kwargs.get('tol', wham_settings["tol"])
+    temp                = kwargs.get('temp', wham_settings["temp"])
+    numpad              = kwargs.get('numpad', wham_settings["numpad"])
     numMCtrials         = MCnum
     randSeed            = random.randint(9999,10000000)
     
@@ -800,7 +1416,7 @@ def pmfcompare(**kwargs):
     else:
         plt.plot(f1[::,0], f1[::,1],lw=1.5,label=c1)
         plt.plot(f2[::,0], f2[::,1],lw=1.5,label=c2)
-    plt.title(r'%s-%s - $\xi$ vs PMF'%(c1,c2))
+    # plt.title(r'%s-%s - $\xi$ vs PMF'%(c1,c2))
     plt.xlabel(cowboe_settings["reaction coordinate unit"],fontsize=14,weight='bold')
     plt.ylabel(cowboe_settings["PMF unit"],fontsize=14,weight='bold')
     plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
@@ -847,7 +1463,7 @@ def pmfdiff(**kwargs):
         plt.plot(f1[::,0], f1[::,1],lw=1.5,label=c1)
         plt.plot(f2[::,0], f2[::,1],lw=1.5,label=c2)
         
-    plt.title(r'%s-%s - $\xi$ vs PMF'%(c1,c2))
+    # plt.title(r'%s-%s - $\xi$ vs PMF'%(c1,c2))
     plt.xlabel(cowboe_settings["reaction coordinate unit"],fontsize=14,weight='bold')
     plt.ylabel(cowboe_settings["PMF unit"],fontsize=14,weight='bold')
     plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
@@ -859,7 +1475,9 @@ def pmfdiff(**kwargs):
     
     diff = np.array(f1-f2)[:,1]
     plt.plot(f1[:,0], abs(diff), label='diff', marker = 's', c = 'r')
-    plt.title(r'Diff %s-%s - $\xi$ vs PMF'%(c1,c2))
+    # plt.title(r'Diff %s-%s - $\xi$ vs PMF'%(c1,c2))
+    meanval = np.ma.masked_invalid(abs(diff)).mean()
+    plt.axhline(y=meanval, ls='--', c='k' , label = f'mean = {round(meanval, 4)}')
     plt.xlabel(cowboe_settings["reaction coordinate unit"],fontsize=14,weight='bold')
     plt.ylabel(cowboe_settings["PMF unit"],fontsize=14,weight='bold')
     plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
@@ -873,7 +1491,7 @@ def pmfdiff(**kwargs):
 
 def multi_pmfcompare(**kwargs):
     '''
-    Plots the pmf curves of multiple files provided through the list.
+    Plots the error bars of the two curves
 
     Parameters
     ----------
@@ -882,9 +1500,6 @@ def multi_pmfcompare(**kwargs):
 
     name : str,
         name to save the output with.
-    
-    splices: int,
-        index value for each input pmf curve to splice unwanted points.
 
     Returns
     -------
@@ -895,17 +1510,19 @@ def multi_pmfcompare(**kwargs):
     pdfname = kwargs['name']
     splices = kwargs['splices']
     
+    marks = cowboe_settings['markers']
+    marks = marks[:len(frees)]
     
-    for free1, splice  in zip(frees,splices):
+    for free1, splice, m  in zip(frees,splices, marks):
         c1 = Path(free1).name.split('.')[0]
     
         free1 = np.loadtxt(free1)[splice:]
         f1, e1= free1[:,0:2], free1[:,2]
         if cowboe_settings['error bar'] : 
-            plt.errorbar(f1[::,0], f1[::,1],yerr=e1,lw=1.5,capsize=2,errorevery=cowboe_settings['error every'],elinewidth=1.5,label=c1)
+            plt.errorbar(f1[::,0], f1[::,1],yerr=e1, marker=m, markevery=cowboe_settings['mark every'], lw=1.5,capsize=2,errorevery=cowboe_settings['error every'],elinewidth=1.5,label=c1)
         else:
-            plt.plot(f1[::,0], f1[::,1],lw=1.5,label=c1)
-        plt.title(r'%s- $\xi$ vs PMF'%(pdfname))
+            plt.plot(f1[::,0], f1[::,1],lw=1.5, marker=m, markevery=cowboe_settings['mark every'], label=c1)
+        ## plt.title(r'%s- $\xi$ vs PMF'%(pdfname))
         plt.xlabel(cowboe_settings["reaction coordinate unit"],fontsize=14,weight='bold')
         plt.ylabel(cowboe_settings["PMF unit"],fontsize=14,weight='bold')
         plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
@@ -927,12 +1544,15 @@ def cowboefit(**kwargs):
     
     bench : str, mandatory
         name of the benchmarck pmf curve
+        
+    annotation : Bool
+        Whether to include annotations or not
     Returns
     -------
     None.
 
     '''
-    
+    annote = kwargs.get('annotation', True)
     def removeinf_and_gradient(freefile):
         '''
         Removes inf entries in the PMF file and calculates the gradient of the same.
@@ -1008,7 +1628,7 @@ def cowboefit(**kwargs):
         else:
             plt.plot(f1[::,0], f1[::,1],lw=1.5,label=c1)
             plt.plot(f2[::,0], f2[::,1],lw=1.5,label=c2)
-        plt.title(r'%s-%s - $\xi$ vs PMF'%(c1,c2))
+        # plt.title(r'%s-%s - $\xi$ vs PMF'%(c1,c2))
         plt.xlabel(cowboe_settings["reaction coordinate unit"],fontsize=14,weight='bold')
         plt.ylabel(cowboe_settings["PMF unit"],fontsize=14,weight='bold')
         plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
@@ -1102,25 +1722,59 @@ def cowboefit(**kwargs):
                     splice=check
                     break
         curve2=curve2[splice:]
-            
-        if len(curve2) > len(curve1): 
-            start = np.where(curve1[0,0] == curve2[:,0]) #curve2 longer
-            start = int(start[0])
-            stop = np.where(curve1[-1,0] == curve2[:,0])
-            stop = int(stop[0])+1
-            curve2 = curve2[start:stop]       
         
-        elif len(curve2) < len(curve1): #
-            start = np.where(curve2[0,0] == curve1[:,0]) #curve1 longer
-            start = int(start[0])
-            stop = np.where(curve2[-1,0] == curve1[:,0])
-            stop = int(stop[0])+1
+        if abs(curve2[-1,0]-curve2[0,0]) > abs(curve1[-1,0]-curve1[0,0]): 
+            
+            start = np.argmin(abs(curve2[:,0] - curve1[0,0])) #curve2 longer
+            #start = int(start[0])
+            stop = np.argmin(abs(curve2[:,0] - curve1[-1,0]))
+            stop = stop+1
+            curve2 = curve2[start:stop]     
+        
+        elif abs(curve2[-1,0]-curve2[0,0]) <= abs(curve1[-1,0]-curve1[0,0]): 
+            
+            start = np.argmin(abs(curve1[:,0] - curve2[0,0])) #curve1 longer
+            #start = int(start[0])
+            stop = np.argmin(abs(curve1[:,0] - curve2[-1,0]))
+            stop = stop+1
             curve1 = curve1[start:stop]   
+            
+        newx = np.linspace(max(curve1[0,0], curve2[0,0]), min(curve1[-1,0], curve2[-1,0]), 100)
+        
+        func1 = inp(curve1[:,0], curve1[:,1], kind='cubic')
+        func2 = inp(curve2[:,0], curve2[:,1], kind='cubic')
+        
+        newy1 = np.array([func1(i) for i in newx])
+        newy1[np.argmin(newy1)] = 0.000
+        newy2 = np.array([func2(i) for i in newx])
+        newy2[np.argmin(newy2)] = 0.000
+        
+        curve1 = np.array([[x,y, np.nan, 0, np.nan] for x,y in zip(newx, newy1)])
+        curve2 = np.array([[x,y, np.nan, 0, np.nan] for x,y in zip(newx, newy2)])
         
         cleanc1, cleanc2 = curve1.copy(), curve2.copy()
         
         f1, e1 =  curve1[:,0:2], curve1[:,2] #these are your points for curve 1 
         f2, e2 =  curve2[:,0:2], curve2[:,2] #these are your points for curve 2 
+            
+        # if len(curve2) > len(curve1): 
+        #     start = np.where(curve1[0,0] == curve2[:,0]) #curve2 longer
+        #     start = int(start[0])
+        #     stop = np.where(curve1[-1,0] == curve2[:,0])
+        #     stop = int(stop[0])+1
+        #     curve2 = curve2[start:stop]       
+        
+        # elif len(curve2) < len(curve1): #
+        #     start = np.where(curve2[0,0] == curve1[:,0]) #curve1 longer
+        #     start = int(start[0])
+        #     stop = np.where(curve2[-1,0] == curve1[:,0])
+        #     stop = int(stop[0])+1
+        #     curve1 = curve1[start:stop]   
+        
+        # cleanc1, cleanc2 = curve1.copy(), curve2.copy()
+        
+        # f1, e1 =  curve1[:,0:2], curve1[:,2] #these are your points for curve 1 
+        # f2, e2 =  curve2[:,0:2], curve2[:,2] #these are your points for curve 2 
         
         # vdistall = np.array([ abs(i-j) for i,j in zip(f1[:,1],f2[:,1])])
         # vdist1 = []
@@ -1177,17 +1831,18 @@ def cowboefit(**kwargs):
             plt.annotate(text='', xy=(f2[vdistpos, 0], f2[vdistpos, 1]), xytext=(f1[vdistpos, 0], f1[vdistpos, 1]), arrowprops=dict(arrowstyle='<->'))
         except:
             plt.annotate(s='', xy=(f2[vdistpos, 0], f2[vdistpos, 1]), xytext=(f1[vdistpos, 0], f1[vdistpos, 1]), arrowprops=dict(arrowstyle='<->'))
-        plt.title(r'%s-%s - $\xi$ vs PMF'%(c1,c2))
+        # plt.title(r'%s-%s - $\xi$ vs PMF'%(c1,c2))
         plt.xlabel(cowboe_settings["reaction coordinate unit"],fontsize=14,weight='bold')
         plt.ylabel(cowboe_settings["PMF unit"],fontsize=14,weight='bold')
         plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
         plt.xticks(fontsize=14)
         plt.yticks(fontsize=14)
-        plt.annotate('max_vdist() = {:.4f}'.format(vdist), # this is the text
+        if annote:
+            plt.annotate('deviation = {:.4f}'.format(vdist), # this is the text
                            (max(cleanc1[:,0])-2,min(cleanc2[:,1])+2), # this is the point to label
-                           textcoords="offset points", # how to position the text
-                           xytext=(0,0), # distance from text to points (x,y)
-                           ha='center',bbox=dict(boxstyle='round,pad=0.2', fc='red', alpha=0.3))
+                           textcoords="axes fraction", # how to position the text
+                           xytext=(0.79,0.04), # distance from text to points (x,y)
+                           ha='center',bbox=dict(boxstyle='round,pad=0.2', fc='red', alpha=0.3), fontsize=12)
         
         plt.savefig(savefile+'.{}'.format(cowboe_settings['fig extension']), bbox_inches='tight', dpi=300)
         plt.show()
@@ -1324,7 +1979,7 @@ def cowboeNM(**kwargs) :
         Fu = [F[1], F[2], F[3]]
         
         plt.plot(Ax, Vy,'k.',markersize='5')
-        #plt.title('Step - I')
+        ## plt.title('Step - I')
         plt.xlabel('ln A')
         plt.ylabel(r'$\Delta$ V')
         plt.plot([Ax[0],Ax[1]], [Vy[0], Vy[1]], 'k-')
@@ -1423,7 +2078,7 @@ def cowboeNM(**kwargs) :
         
         plt.xlim((min(bes[0],wor[0],oth[0],ref[0])-0.1 , max(bes[0],wor[0],oth[0],ref[0])+0.1))
         plt.ylim((min(bes[1],wor[1],oth[1],ref[1])-0.1 , max(bes[1],wor[1],oth[1],ref[1])+0.1))
-        plt.title('reflection')
+        # plt.title('reflection')
         plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
         plt.savefig('reflected.{}'.format(cowboe_settings['fig extension']),bbox_inches='tight', dpi=300)
         plt.show()
@@ -1457,7 +2112,7 @@ def cowboeNM(**kwargs) :
         
         plt.xlim((min(bes[0],wor[0],oth[0],exp[0])-0.1 , max(bes[0],wor[0],oth[0],exp[0])+0.1))
         plt.ylim((min(bes[1],wor[1],oth[1],exp[1])-0.1 , max(bes[1],wor[1],oth[1],exp[1])+0.1))
-        plt.title('expansion')
+        # plt.title('expansion')
         plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
         plt.savefig('expanded.{}'.format(cowboe_settings['fig extension']),bbox_inches='tight', dpi=300)
         plt.show()
@@ -1488,7 +2143,7 @@ def cowboeNM(**kwargs) :
         
         plt.xlim((min(bes[0],wor[0],oth[0],in_con[0])-0.1 , max(bes[0],wor[0],oth[0],in_con[0])+0.1))
         plt.ylim((min(bes[1],wor[1],oth[1],in_con[1])-0.1 , max(bes[1],wor[1],oth[1],in_con[1])+0.1))
-        plt.title('inner contraction')
+        # plt.title('inner contraction')
         plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
         plt.savefig('inner_c.{}'.format(cowboe_settings['fig extension']),bbox_inches='tight', dpi=300)
         plt.show()
@@ -1519,7 +2174,7 @@ def cowboeNM(**kwargs) :
         
         plt.xlim((min(bes[0],wor[0],oth[0],out_con[0])-0.1 , max(bes[0],wor[0],oth[0],out_con[0])+0.1))
         plt.ylim((min(bes[1],wor[1],oth[1],out_con[1])-0.1 , max(bes[1],wor[1],oth[1],out_con[1])+0.1))
-        plt.title('outer contraction')
+        # plt.title('outer contraction')
         plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
         plt.savefig('outer_c.{}'.format(cowboe_settings['fig extension']),bbox_inches='tight', dpi=300)
         plt.show()
@@ -1554,7 +2209,7 @@ def cowboeNM(**kwargs) :
         
         plt.xlim((min(bes[0],wor[0],oth[0],s_wor[0], s_oth[0])-0.1 , max(bes[0],wor[0],oth[0],s_wor[0], s_oth[0])+0.1))
         plt.ylim((min(bes[1],wor[1],oth[1],s_wor[1], s_oth[1])-0.1 , max(bes[1],wor[1],oth[1],s_wor[1], s_oth[1])+0.1))
-        plt.title('shrinking')       
+        # plt.title('shrinking')       
         plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
         plt.savefig('shrink.{}'.format(cowboe_settings['fig extension']),bbox_inches='tight', dpi=300)
         plt.show()
@@ -1729,7 +2384,7 @@ def cowboeRNM(**kwargs) :
         Fu = [F[1], F[2], F[3]]
         
         plt.plot(Ax, Vy,'k.',markersize='5')
-        #plt.title('Step - I')
+        ## plt.title('Step - I')
         plt.xlabel('ln A')
         plt.ylabel(r'$\Delta$ V')
         plt.plot([Ax[0],Ax[1]], [Vy[0], Vy[1]], 'k-')
@@ -1828,7 +2483,7 @@ def cowboeRNM(**kwargs) :
         
         plt.xlim((min(bes[0],wor[0],oth[0],ref[0])-0.1 , max(bes[0],wor[0],oth[0],ref[0])+0.1))
         plt.ylim((min(bes[1],wor[1],oth[1],ref[1])-0.1 , max(bes[1],wor[1],oth[1],ref[1])+0.1))
-        plt.title('reflection')
+        # plt.title('reflection')
         plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
         plt.savefig('reflected.{}'.format(cowboe_settings['fig extension']),bbox_inches='tight', dpi=300)
         plt.show()
@@ -1862,7 +2517,7 @@ def cowboeRNM(**kwargs) :
         
     #     plt.xlim((min(bes[0],wor[0],oth[0],exp[0])-0.1 , max(bes[0],wor[0],oth[0],exp[0])+0.1))
     #     plt.ylim((min(bes[1],wor[1],oth[1],exp[1])-0.1 , max(bes[1],wor[1],oth[1],exp[1])+0.1))
-    #     plt.title('expansion')
+    #     # plt.title('expansion')
     #     plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     #     plt.savefig('expanded.{}'.format(cowboe_settings['fig extension']),bbox_inches='tight', dpi=300)
     #     plt.show()
@@ -1893,7 +2548,7 @@ def cowboeRNM(**kwargs) :
         
         plt.xlim((min(bes[0],wor[0],oth[0],in_con[0])-0.1 , max(bes[0],wor[0],oth[0],in_con[0])+0.1))
         plt.ylim((min(bes[1],wor[1],oth[1],in_con[1])-0.1 , max(bes[1],wor[1],oth[1],in_con[1])+0.1))
-        plt.title('inner contraction')
+        # plt.title('inner contraction')
         plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
         plt.savefig('inner_c.{}'.format(cowboe_settings['fig extension']),bbox_inches='tight', dpi=300)
         plt.show()
@@ -1924,7 +2579,7 @@ def cowboeRNM(**kwargs) :
         
         plt.xlim((min(bes[0],wor[0],oth[0],out_con[0])-0.1 , max(bes[0],wor[0],oth[0],out_con[0])+0.1))
         plt.ylim((min(bes[1],wor[1],oth[1],out_con[1])-0.1 , max(bes[1],wor[1],oth[1],out_con[1])+0.1))
-        plt.title('outer contraction')
+        # plt.title('outer contraction')
         plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
         plt.savefig('outer_c.{}'.format(cowboe_settings['fig extension']),bbox_inches='tight', dpi=300)
         plt.show()
@@ -1959,7 +2614,7 @@ def cowboeRNM(**kwargs) :
         
         plt.xlim((min(bes[0],wor[0],oth[0],s_wor[0], s_oth[0])-0.1 , max(bes[0],wor[0],oth[0],s_wor[0], s_oth[0])+0.1))
         plt.ylim((min(bes[1],wor[1],oth[1],s_wor[1], s_oth[1])-0.1 , max(bes[1],wor[1],oth[1],s_wor[1], s_oth[1])+0.1))
-        plt.title('shrinking')       
+        # plt.title('shrinking')       
         plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
         plt.savefig('shrink.{}'.format(cowboe_settings['fig extension']),bbox_inches='tight', dpi=300)
         plt.show()
@@ -2033,7 +2688,7 @@ def cowboeRNM(**kwargs) :
 
 def NMprogress(**kwargs):
     '''
-    provies an update on the progress of the algorithm by generating gif for steps
+    provides an update on the progress of the algorithm by generating gif for steps
     and summarizies the function values in term of figures and convergence.
 
     Parameters
@@ -2087,46 +2742,49 @@ def NMprogress(**kwargs):
     
         best = np.argmin(F)
         worst = np.argmax(F)
-            
+        si=13
+        
         for x,y,l in zip(Ax,Vy,range(len(Ax))):
             
             if    l == best    : 
                 label = '{:.4f}'.format(F[l])
                 fontc = 'g'
-                plt.plot(Ax[l], Vy[l],'g^',markersize='10')
+                plt.plot(Ax[l], Vy[l],'g^',markersize=15, label= label)
             elif  l == worst   : 
                 label = '{:.4f}'.format(F[l])
                 fontc = 'r'
-                plt.plot(Ax[l], Vy[l],'r^',markersize='10')
+                plt.plot(Ax[l], Vy[l],'r^',markersize=15, label = label)
             else               : 
                 label = '{:.4f}'.format(F[l])
                 fontc = 'y'
-                plt.plot(Ax[l], Vy[l],'y^',markersize='10')
+                plt.plot(Ax[l], Vy[l],'y^',markersize=15, label = label)
         
                 
-            plt.annotate(label, # this is the text
-                         (x,y), # this is the point to label
-                         textcoords="offset points", # how to position the text
-                         xytext=(0,10), # distance from text to points (x,y)
-                         color = fontc,
-                         ha='center')
+            # plt.annotate(label, # this is the text
+            #              (x,y), # this is the point to label
+            #              textcoords="offset points", # how to position the text
+            #              xytext=(0,10), # distance from text to points (x,y)
+            #              color = fontc,
+            #              ha='center',
+            #              size=si)
         
-        plt.annotate('area = {}'.format(a), # this is the text
+        plt.annotate('area = {0:0.4e}'.format(a), # this is the text
                           (max([np.log(i) for i in points[:,:,0].flatten()])-0.35,max(points[:,:,1].flatten())+0.1), # this is the point to label
-                          textcoords="offset points", # how to position the text
-                          xytext=(0,0), # distance from text to points (x,y)
-                          ha='center',bbox=dict(boxstyle='round,pad=0.2', fc='red', alpha=0.3))
+                          textcoords="axes fraction", # how to position the text
+                          xytext=(0.5,0.93), # distance from text to points (x,y)
+                          ha='center',bbox=dict(boxstyle='round,pad=0.2', fc='red', alpha=0.3),size=si)
         
         plt.annotate('{}'.format(ind+1), # this is the text
                           xy=(1.35,0.95),
-                          xytext=(1.35,0.95), 
+                          textcoords="axes fraction", # how to position the text
+                          xytext=(0.96,0.9), # distance from text to points (x,y)
                           color = 'k',
                           fontsize=18, 
                           ha='center',bbox=dict(boxstyle='round,pad=0.2', fc='yellow', alpha=0.3))
         
         
         
-        
+        plt.legend(loc='lower right')
         #return a, stopcheck1, stopcheck2
         return a, stopcheck1
     
@@ -2282,7 +2940,7 @@ def NMprogress(**kwargs):
         stopchecks1.append(stopcheck1)
         #stopchecks2.append(stopcheck2)
         
-        plt.savefig('{}.{}'.format(ind+1,cowboe_settings['fig extension']), dpi=300)
+        plt.savefig('{}.jpg'.format(ind+1), dpi=300)
         plt.show()
         plt.close()
         
@@ -2298,7 +2956,7 @@ def NMprogress(**kwargs):
     plt.ylim((0,np.max(areas)*1.10))
     plt.xlabel('simplexes',weight='bold')
     plt.ylabel('area',weight='bold')
-    plt.title('Area of simplexes')
+    # plt.title('Area of simplexes')
     plt.savefig('Area of simplexes.{}'.format('pdf'),bbox_inches='tight', dpi=300)
     plt.show()
     plt.close()
@@ -2308,7 +2966,7 @@ def NMprogress(**kwargs):
     plt.axhline(y=np.min(stopchecks1)+0.1, c='g', ls='-.')
     plt.xlabel('simplexes',weight='bold')
     plt.ylabel('RMSD - stopping criteria',weight='bold')
-    plt.title('RMSD - fit()')
+    # plt.title('RMSD - fit()')
     plt.savefig('RMSF-fit().{}'.format('pdf'),bbox_inches='tight', dpi=300)
     plt.show()
     plt.close()
@@ -2452,7 +3110,7 @@ def cowboeKS(**kwargs):
         sns.distplot(sorted(data2),hist=False)
         plt.xlabel(cowboe_settings["reaction coordinate unit"])
         plt.ylabel('pdf')      
-        plt.title('window - {}'.format(w))
+        # plt.title('window - {}'.format(w))
         plt.savefig(os.path.join(os.sep,loc,'dist_{}.{}'.format(w,cowboe_settings['fig extension'])),bbox_inches='tight', dpi=300)
         plt.show()
     
@@ -2488,7 +3146,7 @@ def cowboeKS(**kwargs):
     ax = fig.add_axes([0,0,1,1])
     ax.bar(range(len(l)),pvalues)
     plt.axhline(y = 0.05, ls='--',c='g')
-    plt.title('p-values')
+    # plt.title('p-values')
     plt.xlabel('windows')
     plt.xticks(range(len(l)))
     plt.savefig(os.path.join(os.sep,loc,'pvalues.{}'.format(cowboe_settings['fig extension'])),bbox_inches='tight', dpi=300)
@@ -2498,7 +3156,7 @@ def cowboeKS(**kwargs):
     ax = fig.add_axes([0,0,1,1])
     ax.bar(range(len(l)),KSstats)
     ax.axhline(y=D,ls='--',c='r')
-    plt.title('KS-statistics')
+    # plt.title('KS-statistics')
     plt.xlabel('windows')
     plt.xticks(range(len(l)))
     plt.savefig(os.path.join(os.sep,loc,'KS-statistics.{}'.format(cowboe_settings['fig extension'])),bbox_inches='tight', dpi=300)
@@ -2588,6 +3246,12 @@ def cowboe_OVL (**kwargs):
         words = line.split()
         l.append(words[0])
     
+    for trajfile in l:
+        distdata = np.loadtxt(os.path.join(os.sep,loc,trajfile))[:,1]
+        sns.distplot(distdata, hist = False, kde = True, kde_kws = {'linewidth': 2})
+    plt.savefig(os.path.join(os.sep,loc,'distribution-kde-{}.{}'.format(name,cowboe_settings['fig extension'])),bbox_inches='tight', dpi=300)
+    plt.show()
+    
     OVL = np.zeros((wins,wins))
     
     for w,trajfile in enumerate(l):
@@ -2620,9 +3284,10 @@ def cowboe_OVL (**kwargs):
     np.savetxt('OVL-%s.txt'%name,OVL,fmt='%.6f')
     
     OVL2=np.loadtxt('OVL-%s.txt'%name)
+    np.save(f'OVL-{name}.npy', OVL2)
     plt.matshow(OVL2, cmap='plasma', interpolation='nearest')
     #plt.imshow(OVL2, cmap='plasma', interpolation='nearest')
-    plt.title('OVL - %s\n'%name)
+    # plt.title('OVL - %s\n'%name)
     #plt.xlim(0,wins-0.5)
     #plt.ylim(0,wins-0.5)
     plt.colorbar()
@@ -2676,7 +3341,7 @@ def cowboe_trajcut(**kwargs):
     start = kwargs['start']
     
 
-    slfol = os.path.join(os.sep,loc,'{}_{}_percentage'.format(name,per))
+    slfol = os.path.join(os.sep,loc,'{}_{}_percentage_{}'.format(name,per,start))
    
     if os.path.isdir(slfol):pass
     else:os.mkdir(slfol)
@@ -2722,7 +3387,7 @@ def cowboe_pmfplot(**kwargs):
         plt.errorbar(f1[::,0], f1[::,1],yerr=e1,lw=1.5,capsize=2,errorevery=cowboe_settings['error every'],elinewidth=1.5,label=c1)
     else:
         plt.plot(f1[::,0], f1[::,1],lw=1.5,label=c1)
-    plt.title('PMF')
+    # plt.title('PMF')
     plt.xlabel(cowboe_settings["reaction coordinate unit"],fontsize=14,weight='bold')
     plt.ylabel(cowboe_settings["PMF unit"],fontsize=14,weight='bold')
     plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
@@ -2764,7 +3429,7 @@ if __name__ == '__main__':
     "conventional no of windows"    : 24,
     "equal_sampling"                : True,
     "conv. min of 1st window"       : 2.5,
-    "conv. min of last window"      : 14.5,
+    "conv. min of last window"      : 14.0,
     "fill colour"                   : 'r',
     "NM_alpha"                      : 1,
     "NM_gamma"                      : 2,
@@ -2773,8 +3438,10 @@ if __name__ == '__main__':
     "error every"                   : 3,
     "error bar"                     : False,
     "mark every"                    : 3,
-    "fig extension"                 : 'jpg',
-    "KS coefficent D"               : 1.36
+    "fig extension"                 : 'pdf',
+    "KS coefficent D"               : 1.36,
+    "markers"                       : ['^','|','v','*','x','s','2','D','o','p'],
+    "mark every"                    : 3
     }
     
     wham_settings = {
@@ -2801,7 +3468,7 @@ else :
     "conventional no of windows"    : 24,
     "equal_sampling"                : True,
     "conv. min of 1st window"       : 2.5,
-    "conv. min of last window"      : 14.5,
+    "conv. min of last window"      : 14.0,
     "fill colour"                   : 'r',
     "NM_alpha"                      : 1,
     "NM_gamma"                      : 2,
@@ -2810,8 +3477,10 @@ else :
     "error every"                   : 3,
     "error bar"                     : False,
     "mark every"                    : 3,
-    "fig extension"                 : 'jpg',
-    "KS coefficent D"               : 1.36
+    "fig extension"                 : 'pdf',
+    "KS coefficent D"               : 1.36,
+    "markers"                       : ['^','|','v','*','x','s','2','D','o','p'],
+    "mark every"                    : 3
     }
     
     wham_settings = {
