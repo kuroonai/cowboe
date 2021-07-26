@@ -149,13 +149,13 @@ def pmftopoints(**kwargs):
     d_pol_smoothed = d_polyfit_smoothed
     
     # PMF and smoothened PMF plots
-    plt.plot(slopetime,dnoinf,c='r',label='actual') # actual pmf
-    plt.plot(slopetime, d_pol_smoothed,c='g',label='polyfit - order = %d'%polyfitorder) # smoothed pmf
-    plt.xlabel(cowboe_settings['reaction coordinate unit'])
-    plt.ylabel(cowboe_settings['PMF unit'])
-    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.plot(slopetime,dnoinf,c='r',label='actual', marker='^', ms=cowboe_settings['marker size'],markevery=cowboe_settings["mark every"]) # actual pmf
+    plt.plot(slopetime, d_pol_smoothed,c='g',label='polyfit - order = %d'%polyfitorder, marker='s', ms=cowboe_settings['marker size'],markevery=cowboe_settings["mark every"]) # smoothed pmf
+    plt.xlabel(cowboe_settings['reaction coordinate unit'],fontsize=14,weight='bold')
+    plt.ylabel(cowboe_settings['PMF unit'],fontsize=14,weight='bold')
+    plt.legend()#plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     # # plt.title('PMF and smoothened curves')
-    plt.savefig('PMF-actual+polyfit.{}'.format(cowboe_settings['fig extension']),bbox_inches = 'tight')
+    plt.savefig('PMF-actual+polyfit.{}'.format(cowboe_settings['fig extension']),bbox_inches = 'tight', dpi=300)
     plt.show()
     plt.close()
     
@@ -163,19 +163,19 @@ def pmftopoints(**kwargs):
     # Calculating and smoothening gradient
     m = np.gradient(d[spltice::], slopetime[1] - slopetime[0]) # gradient of actual pmf
     m_pol_smooth = np.gradient(d_pol_smoothed, slopetime[1] - slopetime[0]) # gradient of smoothed pmf
-    np.savetxt('pol_smooth-grad.dat', np.c_[slopetime[:],m_pol_smooth],fmt='%.4f') # saving gradient of smoothed pmf
-    pos = np.loadtxt('pol_smooth-grad.dat')[:,0]
+    np.savetxt('pol_smooth-grad.txt', np.c_[slopetime[:],m_pol_smooth],fmt='%.4f') # saving gradient of smoothed pmf
+    pos = np.loadtxt('pol_smooth-grad.txt')[:,0]
     grad = np.array([abs(i) for i in m]) # abs value of gradient of actual pmf
-    Grad_pol_smooth = np.array([abs(i) for i in np.loadtxt('pol_smooth-grad.dat')[:,1]]) # abs value of gradient of smoothed pmf
+    Grad_pol_smooth = np.array([abs(i) for i in np.loadtxt('pol_smooth-grad.txt')[:,1]]) # abs value of gradient of smoothed pmf
     
     # Gradient and smoothened gradient plots
-    plt.plot(pos,grad,c='r',label='actual')
-    plt.plot(slopetime, Grad_pol_smooth,c='g',label='polyfit - order = %d'%polyfitorder)
-    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-    plt.xlabel(cowboe_settings['reaction coordinate unit'])
-    plt.ylabel(r'$\Delta$ PMF')
+    plt.plot(pos,grad,c='r',label='actual', marker='^', ms=cowboe_settings['marker size'],markevery=cowboe_settings["mark every"])
+    plt.plot(slopetime, Grad_pol_smooth,c='g',label='polyfit - order = %d'%polyfitorder, marker='s', ms=cowboe_settings['marker size'],markevery=cowboe_settings["mark every"])
+    plt.legend()#plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.xlabel(cowboe_settings['reaction coordinate unit'],fontsize=14,weight='bold')
+    plt.ylabel(r'$\Delta$ PMF',fontsize=14,weight='bold')
     # # plt.title(r'$\Delta$ PMF and smoothened curves')
-    plt.savefig('gradient-actual+polyfit.{}'.format(cowboe_settings['fig extension']),bbox_inches = 'tight')
+    plt.savefig('gradient-actual+polyfit.{}'.format(cowboe_settings['fig extension']),bbox_inches = 'tight', dpi=300)
     plt.show()
     plt.close()
     
@@ -205,8 +205,8 @@ def pmftopoints(**kwargs):
     # plt.plot(x,y)
     # plt.xlim((x[0]+1, x[-1]-1))
     plt.plot(x[extremes], y[extremes], '*',c ='k')
-    plt.ylabel(r'$\Delta$ PMF')
-    plt.xlabel(cowboe_settings['reaction coordinate unit'])
+    plt.ylabel(r'$\Delta$ PMF',fontsize=14,weight='bold')
+    plt.xlabel(cowboe_settings['reaction coordinate unit'],fontsize=14,weight='bold')
     # # plt.title('Initial window guess')
     
     
@@ -215,7 +215,7 @@ def pmftopoints(**kwargs):
     for exr in x[crest]:
         plt.axvline(exr,ls='--',c='g')   
 
-    plt.savefig('guess.{}'.format(cowboe_settings['fig extension']),bbox_inches = 'tight')
+    plt.savefig('guess.{}'.format(cowboe_settings['fig extension']),bbox_inches = 'tight', dpi=300)
     plt.show()
     plt.close()
     
@@ -358,7 +358,7 @@ def cowboelammps(**kwargs):
         plt.show()
         plt.close()
         
-        np.savetxt('K-{}-{}.dat'.format(A,B), np.c_[range(len(K)), K])
+        np.savetxt('K-{}-{}.txt'.format(A,B), np.c_[range(len(K)), K])
         
         return K, Windows, Mss
     
@@ -488,7 +488,8 @@ def cowboelammps(**kwargs):
 
         for exr in x[crest]:
             plt.axvline(exr, ls='--', c='g')
-
+        plt.xlim(cowboe_settings['xlim'])
+        plt.ylim(cowboe_settings['ylim'])
         plt.savefig('up and down_%.4f_%.4f.%s' % (A, B, cowboe_settings['fig extension']), bbox_inches='tight', dpi=300)
         plt.title('A = %.4f & B = %.4f - initial guess' %(A,B))
         plt.show()
@@ -527,10 +528,10 @@ def cowboelammps(**kwargs):
     Rcalc = start - ww(current_max)
 
     file = True
-    if os.path.isfile('LOG_%.4f_%.4f.dat' % (A, B)): os.remove('LOG_%.4f_%.4f.dat' % (A, B))
+    if os.path.isfile('LOG_%.4f_%.4f.txt' % (A, B)): os.remove('LOG_%.4f_%.4f.txt' % (A, B))
     if file:
 
-        f = open('LOG_%.4f_%.4f.dat' % (A, B), 'w')
+        f = open('LOG_%.4f_%.4f.txt' % (A, B), 'w')
         oldstdout = sys.stdout
         sys.stdout = f
 
@@ -648,11 +649,13 @@ def cowboelammps(**kwargs):
     for exr in windows:
         plt.axvline(exr, ls='--', c='r')
 
-    plt.xticks(windows, rotation=90)
-    plt.xlim((x[-1]-1, x[0]+1))
-    plt.title('A = %.4f & B = %.4f - from cowboe' %(A,B))
-    plt.ylabel(r'$\Delta$ PMF')
-    plt.xlabel(cowboe_settings['reaction coordinate unit'])
+    # plt.xticks(windows, rotation=90)
+    # plt.xlim((x[-1]-1, x[0]+1))
+    plt.xlim(cowboe_settings['xlim'])
+    # plt.title('A = %.4f & B = %.4f - from cowboe' %(A,B))
+    plt.ylabel(r'$\Delta$ PMF',fontsize=14,weight='bold')
+    plt.xlabel(cowboe_settings['reaction coordinate unit'],fontsize=14,weight='bold')
+    plt.savefig('overgradient_%.4f_%.4f.%s' % (A, B, cowboe_settings['fig extension']), bbox_inches='tight', dpi=300)
     plt.show()
     plt.close()
     
@@ -933,7 +936,7 @@ def cowboe(**kwargs):
         plt.show()
         plt.close()
         
-        np.savetxt('K-{}-{}.dat'.format(A,B), np.c_[range(len(K)), K])
+        np.savetxt('K-{}-{}.txt'.format(A,B), np.c_[range(len(K)), K])
         
         return K, Windows, Mss
 
@@ -1039,10 +1042,10 @@ def cowboe(**kwargs):
     Rcalc = start - ww(current_max)
 
     file = True
-    if os.path.isfile('LOG_%.4f_%.4f.dat' % (A, B)): os.remove('LOG_%.4f_%.4f.dat' % (A, B))
+    if os.path.isfile('LOG_%.4f_%.4f.txt' % (A, B)): os.remove('LOG_%.4f_%.4f.txt' % (A, B))
     if file:
 
-        f = open('LOG_%.4f_%.4f.dat' % (A, B), 'w')
+        f = open('LOG_%.4f_%.4f.txt' % (A, B), 'w')
         oldstdout = sys.stdout
         sys.stdout = f
 
@@ -1519,15 +1522,31 @@ def multi_pmfcompare(**kwargs):
         free1 = np.loadtxt(free1)[splice:]
         f1, e1= free1[:,0:2], free1[:,2]
         if cowboe_settings['error bar'] : 
-            plt.errorbar(f1[::,0], f1[::,1],yerr=e1, marker=m, markevery=cowboe_settings['mark every'], lw=1.5,capsize=2,errorevery=cowboe_settings['error every'],elinewidth=1.5,label=c1)
+            plt.errorbar(f1[::,0], f1[::,1],yerr=e1, marker=m, \
+                         markevery=cowboe_settings['mark every'], \
+                             lw=1.5,capsize=2,errorevery=cowboe_settings['error every'],\
+                                 elinewidth=1.5,\
+                                     ms=cowboe_settings['marker size'],\
+                                     label=c1)
         else:
-            plt.plot(f1[::,0], f1[::,1],lw=1.5, marker=m, markevery=cowboe_settings['mark every'], label=c1)
+            plt.plot(f1[::,0], f1[::,1],lw=1.5, \
+                     marker=m, \
+                         markevery=cowboe_settings['mark every'], \
+                             ms=cowboe_settings['marker size'],\
+                             label=c1)
+                
         ## plt.title(r'%s- $\xi$ vs PMF'%(pdfname))
         plt.xlabel(cowboe_settings["reaction coordinate unit"],fontsize=14,weight='bold')
         plt.ylabel(cowboe_settings["PMF unit"],fontsize=14,weight='bold')
-        plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-        plt.xticks(fontsize=14)
-        plt.yticks(fontsize=14)
+    #     plt.xticks(cowboe_settings['xticks'], fontsize=14)
+        
+    # axis = plt.axis()
+    # plt.axis = 
+    
+    plt.xlim(cowboe_settings['xlim'])
+    plt.ylim(cowboe_settings['ylim'])
+    #plt.legend(loc = 'lower right') 
+    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     plt.savefig('{}.{}'.format(pdfname, cowboe_settings['fig extension']), bbox_inches='tight', dpi=300)
     plt.show()
     plt.close()
@@ -2718,18 +2737,31 @@ def NMprogress(**kwargs):
         
         return round(area,8)
     
-    def triangle(A,ind):
+    def triangle(A,ind, Pointlocal):
         Ax = np.array([np.log(i) for i in A[:,0]])
         Vy = np.array(A[:,1])
         F  = np.array(A[:,2])
         
+        if ind != 0:
+            P = Pointlocal[ind-1]
+            lAx = np.array([np.log(i) for i in P[:,0]])
+            lVy = np.array(P[:,1])
+            lF  = np.array(P[:,2])
+            
+            plt.plot([lAx[0],lAx[1]], [lVy[0], lVy[1]], 'k--')
+            plt.plot([lAx[1],lAx[2]], [lVy[1], lVy[2]], 'k--')
+            plt.plot([lAx[2],lAx[0]], [lVy[2], lVy[0]], 'k--')
+            
+        
         
         #plt.plot(Ax, Vy,'k^',markersize='10')
-        plt.xlabel('ln A')
-        plt.ylabel(r'$\Delta$ V')
+        plt.xlabel('ln A',fontsize=14,weight='bold')
+        plt.ylabel(r'$\Delta$ V',fontsize=14,weight='bold')
         plt.plot([Ax[0],Ax[1]], [Vy[0], Vy[1]], 'k-')
         plt.plot([Ax[1],Ax[2]], [Vy[1], Vy[2]], 'k-')
         plt.plot([Ax[2],Ax[0]], [Vy[2], Vy[0]], 'k-')
+        plt.xticks(fontsize=14,weight='bold')
+        plt.yticks(fontsize=14,weight='bold')
     
         a = area(Ax,Vy)
         #stopcheck1, stopcheck2 = cowboestop(fit = F)
@@ -2742,7 +2774,7 @@ def NMprogress(**kwargs):
     
         best = np.argmin(F)
         worst = np.argmax(F)
-        si=13
+        si=14
         
         for x,y,l in zip(Ax,Vy,range(len(Ax))):
             
@@ -2753,11 +2785,11 @@ def NMprogress(**kwargs):
             elif  l == worst   : 
                 label = '{:.4f}'.format(F[l])
                 fontc = 'r'
-                plt.plot(Ax[l], Vy[l],'r^',markersize=15, label = label)
+                plt.plot(Ax[l], Vy[l],'rX',markersize=15, label = label)
             else               : 
                 label = '{:.4f}'.format(F[l])
                 fontc = 'y'
-                plt.plot(Ax[l], Vy[l],'y^',markersize=15, label = label)
+                plt.plot(Ax[l], Vy[l],'yo',markersize=15, label = label)
         
                 
             # plt.annotate(label, # this is the text
@@ -2772,6 +2804,7 @@ def NMprogress(**kwargs):
                           (max([np.log(i) for i in points[:,:,0].flatten()])-0.35,max(points[:,:,1].flatten())+0.1), # this is the point to label
                           textcoords="axes fraction", # how to position the text
                           xytext=(0.5,0.93), # distance from text to points (x,y)
+                          fontsize=18, 
                           ha='center',bbox=dict(boxstyle='round,pad=0.2', fc='red', alpha=0.3),size=si)
         
         plt.annotate('{}'.format(ind+1), # this is the text
@@ -2935,7 +2968,7 @@ def NMprogress(**kwargs):
     for ind, poi in enumerate(points):
         plt.cla()
         #ar, stopcheck1,  stopcheck2 = triangle(poi, ind)
-        ar, stopcheck1 = triangle(poi, ind)
+        ar, stopcheck1 = triangle(poi, ind, points)
         areas.append(ar)
         stopchecks1.append(stopcheck1)
         #stopchecks2.append(stopcheck2)
@@ -3221,9 +3254,11 @@ def cowboe_OVL (**kwargs):
 
         if distplot:
             fig, ax = plt.subplots()
-            sns.distplot(hist1,label='win %d'%i,color='r')
-            sns.distplot(hist2,label='win %d'%j,color='b')
+            sns.distplot(hist1,label='window %d'%i,color='r')
+            sns.distplot(hist2,label='window %d'%j,color='b')
             plt.legend()
+            plt.xlabel(cowboe_settings["reaction coordinate unit"],fontsize=14,weight='bold')
+            plt.ylabel('probability density function',fontsize=14,weight='bold')
             plt.savefig(os.path.join(os.sep,loc,'windows-{}&{}.{}'.format(i,j,cowboe_settings['fig extension'])), bbox_inches='tight', dpi=300)
             plt.show()
         output = 1.0 - (fabs(cdf(y,x1) - cdf(x,x1)) + fabs(cdf(y,x2) - cdf(x,x2)))
@@ -3249,6 +3284,8 @@ def cowboe_OVL (**kwargs):
     for trajfile in l:
         distdata = np.loadtxt(os.path.join(os.sep,loc,trajfile))[:,1]
         sns.distplot(distdata, hist = False, kde = True, kde_kws = {'linewidth': 2})
+    plt.xlabel(cowboe_settings["reaction coordinate unit"],fontsize=14,weight='bold')
+    plt.ylabel('probability density function',fontsize=14,weight='bold')
     plt.savefig(os.path.join(os.sep,loc,'distribution-kde-{}.{}'.format(name,cowboe_settings['fig extension'])),bbox_inches='tight', dpi=300)
     plt.show()
     
@@ -3419,8 +3456,8 @@ def settings_update():
 if __name__ == '__main__':
     
     cowboe_settings = {
-    "PMF unit"                      : r'PMF - Kcal / (mol $\cdot~\AA^2$)',
-    "reaction coordinate unit"      : r"$\AA$",     
+    "PMF unit"                      : 'PMF (Kcal / mol)',
+    "reaction coordinate unit"      : r"$\xi$ - reaction coordinate ($\AA$)",     
     "polynomial fit order"          : 12,  
     "param B"                       : 2.0,         
     "Number of datapoints"          : 10**5,        
@@ -3441,7 +3478,10 @@ if __name__ == '__main__':
     "fig extension"                 : 'pdf',
     "KS coefficent D"               : 1.36,
     "markers"                       : ['^','|','v','*','x','s','2','D','o','p'],
-    "mark every"                    : 3
+    "mark every"                    : 3,
+    "marker size"                   : 10,
+    "xlim"                          : (2,16),
+    "ylim"                          : (0,16)
     }
     
     wham_settings = {
@@ -3458,8 +3498,8 @@ if __name__ == '__main__':
 else : 
 
     cowboe_settings = {
-    "PMF unit"                      : r'PMF - Kcal / (mol $\cdot~\AA^2$)',
-    "reaction coordinate unit"      : r"$\AA$",     
+    "PMF unit"                      : 'PMF (Kcal / mol)',
+    "reaction coordinate unit"      : r"$\xi$ - reaction coordinate ($\AA$)",     
     "polynomial fit order"          : 12,  
     "param B"                       : 2.0,         
     "Number of datapoints"          : 10**5,        
@@ -3480,7 +3520,10 @@ else :
     "fig extension"                 : 'pdf',
     "KS coefficent D"               : 1.36,
     "markers"                       : ['^','|','v','*','x','s','2','D','o','p'],
-    "mark every"                    : 3
+    "mark every"                    : 3,
+    "marker size"                   : 10,
+    "xlim"                          : (2,16),
+    "ylim"                          : (0,16)
     }
     
     wham_settings = {
