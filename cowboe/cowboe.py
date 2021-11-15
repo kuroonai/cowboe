@@ -62,7 +62,7 @@ Created on Mon Jan 20 15:19:02 2020
 """
 __all__ = ['pmftopoints','cowboe', 'cowboefit', 'settings_update','cowboeKS', 'cowboeRNM', 'cowboeNM',\
            'progressfile', 'NMprogress', 'cowboe3Dsurface','cowboe_wham', 'pmfcompare', 'multi_pmfcompare',\
-           'cowboe_settings', 'wham_settings', 'cowboe_trajcut', 'cowboe_OVL', 'cowboe_pmfplot', 'pmfdiff']
+           'cowboe_settings', 'wham_settings', 'cowboe_trajcut', 'cowboe_OVL', 'cowboe_pmfplot', 'pmfdiff','lammps_input']
 
 import os
 import sys
@@ -88,7 +88,8 @@ from math import sqrt, fabs, erf, log
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.interpolate import interp1d as inp
 from scipy.signal import argrelextrema as extrema
-
+from shapely.geometry import Polygon
+import matplotlib.ticker as mticker
 
 font = {
         'weight' : 'bold',
@@ -1503,7 +1504,18 @@ def multi_pmfcompare(**kwargs):
 
     name : str,
         name to save the output with.
-
+    
+    splice : array
+        array for index value for each pmf curve to splice to
+    
+    markzero : Bool
+        Whether to mark y = 0 with a dashed line or not
+    
+    markers : list 
+        list of matplotlib markers to user for each curve
+    
+    colors : list
+        list of matplotlib plot colors to user for each curve
     Returns
     -------
     None
@@ -1513,16 +1525,19 @@ def multi_pmfcompare(**kwargs):
     pdfname = kwargs['name']
     splices = kwargs['splices']
     
-    marks = cowboe_settings['markers']
+    marks = kwargs.get('markers',cowboe_settings['markers'])
+    colors = kwargs.get('colors',cowboe_settings['colors'])
     marks = marks[:len(frees)]
+    colors = colors[:len(frees)]
+    markzero = kwargs.get('markzero',False)
     
-    for free1, splice, m  in zip(frees,splices, marks):
+    for free1, splice, m, color  in zip(frees,splices, marks, colors):
         c1 = Path(free1).name.split('.')[0]
     
         free1 = np.loadtxt(free1)[splice:]
         f1, e1= free1[:,0:2], free1[:,2]
         if cowboe_settings['error bar'] : 
-            plt.errorbar(f1[::,0], f1[::,1],yerr=e1, marker=m, \
+            plt.errorbar(f1[::,0], f1[::,1],yerr=e1, marker=m, c=color,\
                          markevery=cowboe_settings['mark every'], \
                              lw=1.5,capsize=2,errorevery=cowboe_settings['error every'],\
                                  elinewidth=1.5,\
@@ -1530,7 +1545,7 @@ def multi_pmfcompare(**kwargs):
                                      label=c1)
         else:
             plt.plot(f1[::,0], f1[::,1],lw=1.5, \
-                     marker=m, \
+                     marker=m, c=color,\
                          markevery=cowboe_settings['mark every'], \
                              ms=cowboe_settings['marker size'],\
                              label=c1)
@@ -1542,10 +1557,12 @@ def multi_pmfcompare(**kwargs):
         
     # axis = plt.axis()
     # plt.axis = 
-    
+    if markzero :
+        plt.axhline(y=0.0,ls='--',c='r')
+        
     plt.xlim(cowboe_settings['xlim'])
-    plt.ylim(cowboe_settings['ylim'])
-    #plt.legend(loc = 'lower right') 
+    #plt.ylim(cowboe_settings['ylim'])
+    # plt.legend(loc = 'lower right') 
     plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     plt.savefig('{}.{}'.format(pdfname, cowboe_settings['fig extension']), bbox_inches='tight', dpi=300)
     plt.show()
@@ -1566,13 +1583,23 @@ def cowboefit(**kwargs):
         
     annotation : Bool
         Whether to include annotations or not
-    Returns
+    
+    area : Bool
+        Whether to use area as the fitness criteria
+    
+    norm_area : bool
+        Whether to divide area by length of the reaction coordinate to give 
+        deviation in PMF units
+        
+    splices : list of index
+       list of index to splice at in the order of [testfile, benchfile]
     -------
-    None.
+    Returns
+        None.
 
     '''
-    annote = kwargs.get('annotation', True)
-    def removeinf_and_gradient(freefile):
+
+    def removeinf_and_gradient(freefile,sp):
         '''
         Removes inf entries in the PMF file and calculates the gradient of the same.
     
@@ -1589,7 +1616,7 @@ def cowboefit(**kwargs):
     
         '''
     
-        f = np.loadtxt(freefile)
+        f = np.loadtxt(freefile)[sp:]
         location, d, e = f[:,0], f[:,1], f[:,2]
         
         for check in range(len(d)):
@@ -1834,16 +1861,23 @@ def cowboefit(**kwargs):
         # for ff,ss in zip(f1[:,0], vdist1):
         #     print(ff,ss)
         
-        c1 = 'benchmark'
-        c2 = 'test'
+        c1 = 'Case I'
+        c2 = 'Case II'
+        
         
         print("\nFor the %s curve:\n\tThe maximum normalized vertical distance between the curves is:\n\t\t%f at %.4f between (%.4f and %.4f)"%(c2, vdist, f2[vdistpos,0], curve1[0,0], curve1[-1,0]))
         if cowboe_settings['error bar'] : 
             plt.errorbar(f1[::,0], f1[::,1],yerr=e1,lw=1.5,capsize=2,errorevery=cowboe_settings['error every'],elinewidth=1.5,label=c1)
             plt.errorbar(f2[::,0], f2[::,1],yerr=e2,lw=1.5,capsize=2,errorevery=cowboe_settings['error every'],elinewidth=1.5,label=c2)
         else:
-            plt.plot(f1[::,0], f1[::,1],lw=1.5,label=c1)
-            plt.plot(f2[::,0], f2[::,1],lw=1.5,label=c2)
+            plt.plot(f1[::,0], f1[::,1],lw=1.5,marker='s', \
+                         markevery=cowboe_settings['mark every'], \
+                             ms=cowboe_settings['marker size'],\
+                                 label=c1)
+            plt.plot(f2[::,0], f2[::,1],lw=1.5,marker='^', \
+                         markevery=cowboe_settings['mark every'], \
+                             ms=cowboe_settings['marker size'],\
+                                 label=c2)
         # plt.plot(f2[vdistpos, 0], f2[vdistpos, 1], markersize=3, marker='^', c='g')
         # plt.plot(f1[vdistpos, 0], f1[vdistpos, 1], markersize=3, marker='^', c='g')
         try:
@@ -1853,7 +1887,8 @@ def cowboefit(**kwargs):
         # plt.title(r'%s-%s - $\xi$ vs PMF'%(c1,c2))
         plt.xlabel(cowboe_settings["reaction coordinate unit"],fontsize=14,weight='bold')
         plt.ylabel(cowboe_settings["PMF unit"],fontsize=14,weight='bold')
-        plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        plt.legend(loc='best')
+        #plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
         plt.xticks(fontsize=14)
         plt.yticks(fontsize=14)
         if annote:
@@ -1861,14 +1896,14 @@ def cowboefit(**kwargs):
                            (max(cleanc1[:,0])-2,min(cleanc2[:,1])+2), # this is the point to label
                            textcoords="axes fraction", # how to position the text
                            xytext=(0.79,0.04), # distance from text to points (x,y)
-                           ha='center',bbox=dict(boxstyle='round,pad=0.2', fc='red', alpha=0.3), fontsize=12)
+                           ha='center',bbox=dict(boxstyle='round,pad=0.2', fc='red', alpha=0.25), fontsize=12)
         
         plt.savefig(savefile+'.{}'.format(cowboe_settings['fig extension']), bbox_inches='tight', dpi=300)
         plt.show()
         plt.close()
         
         output = {
-            'max_vdist':vdist,
+            'result':vdist,
             'rc_range':[curve1[0,0], curve1[-1,0]]
             }
         
@@ -1877,17 +1912,226 @@ def cowboefit(**kwargs):
         
         return output
     
+    def pmfarea(gfile, gfile2, savefile) :
+        '''
+        Finds the absolute area difference or fitness between two curves
+    
+        Parameters
+        ----------
+        gfile : str,
+            name of the curve 1 (PMF) file.
+        gfile2 : str,
+            name of the curve 2 (PMF) file.
+        savefile : str,
+            name to save the output with.
+    
+        Returns
+        -------
+        None
+            
+    
+        '''
+        def json_dump(d,filename):
+            '''
+            Dumps a dict into a json file with the given name    
+        
+            Parameters
+            ----------
+            d : dict
+                dictionary variable which needs to be dumped as a json file.
+            filename : str
+                name for the json file.
+        
+            Returns
+            -------
+            None.
+        
+            '''
+            json = j.dumps(d)
+            f = open("%s.json"%filename,"w")
+            f.write(json)
+            f.close()
+            
+            return None
+    
+        def pickle_dump(d, filename):
+            '''
+            Dumps a dict into a pickle file with the given name    
+        
+            Parameters
+            ----------
+            d : dict
+                dictionary variable which needs to be dumped as a pickle file.
+            filename : str
+                name for the pickle file.
+        
+            Returns
+            -------
+            None.
+        
+            '''
+            with open(filename+'.p','wb') as f:
+                pickle.dump(d,f)
+            
+            return None
+
+        
+        curve1=np.loadtxt(gfile)
+        curve2=np.loadtxt(gfile2)
+        
+        for check in range(len(curve1)):
+        
+                if np.isinf(curve1[check,1])==True:
+                    continue
+                else:
+                    splice=check
+                    break
+        curve1=curve1[splice:]
+        
+        for check in range(len(curve2)):
+        
+                if np.isinf(curve2[check,1])==True:
+                    continue
+                else:
+                    splice=check
+                    break
+        curve2=curve2[splice:]
+            
+        if len(curve2) > len(curve1): 
+            start = np.where(curve1[0,0] == curve2[:,0]) #curve2 longer
+            start = int(start[0])
+            stop = np.where(curve1[-1,0] == curve2[:,0])
+            stop = int(stop[0])+1
+            curve2 = curve2[start:stop]       
+        
+        elif len(curve2) < len(curve1): #
+            start = np.where(curve2[0,0] == curve1[:,0]) #curve1 longer
+            start = int(start[0])
+            stop = np.where(curve2[-1,0] == curve1[:,0])
+            stop = int(stop[0])+1
+            curve1 = curve1[start:stop]   
+        
+        
+        x_y_curve1 =  curve1[:,0:2] #these are your points for curve 1 
+        x_y_curve2 =  curve2[:,0:2] #these are your points for curve 2 
+        
+        cleancurve1 = x_y_curve1.copy()
+        cleancurve2 = x_y_curve2.copy()
+        
+        def cleanarea(cleanc1,cleanc2,area_loc):
+            polygon_points = [] #creates a empty list where we will append the points to create the polygon
+            
+            cc1 = cleanc1.copy()
+            cc2 = cleanc2.copy()
+            
+            #to get the actual area diff comment the below for loop block
+            if area_loc == 'above' or area_loc == 'below':
+                entry=0
+                for p1, p2 in zip(cc1, cc2):
+                    
+                     if area_loc == 'below':
+                         #to get area above perfect curve
+                         if p1[1]<=p2[1]:
+                             cc1[entry]=cc2[entry]
+                    
+                     elif area_loc == 'above':
+                          #to get area below perfect curve     
+                         if p1[1]>=p2[1]:
+                             cc1[entry]=cc2[entry]
+                    
+                     entry+=1
+            else:pass
+            
+            for xyvalue in cc1:
+                polygon_points.append([xyvalue[0],xyvalue[1]])
+            
+            for xyvalue in cc2[::-1]:
+                polygon_points.append([xyvalue[0],xyvalue[1]])
+                
+            for xyvalue in cc1[0:1]:
+                polygon_points.append([xyvalue[0],xyvalue[1]])
+            polygon = Polygon(polygon_points)
+            
+            return polygon.area
+        
+        areaa, areab = cleanarea(cleancurve1, cleancurve2, 'above'), cleanarea(cleancurve1, cleancurve2, 'below')
+        area = areaa + areab
+        rc= curve1[-1,0]-curve1[0,0] #14.437500  - 3.062500 #
+        deltapmf=area*(curve1[1,0]-curve1[0,0])/rc#(area[count]*rc[count]*(curve1[1,0]-curve1[0,0]))/rc[count]#(area[count])*(curve1[1,0]-curve1[0,0])#(area[count]/rc[count])*(curve1[1,0]-curve1[0,0])
+        newarea= area/rc
+        
+        c1 = 'Case I'
+        c2 = 'Case II'
+        
+        print("\nFor the %s curve:\n\tThe area between the curves is:\t%f between (%.4f and %.4f)  \n\t\tAbove : %f\n\t\tBelow : %f\n\tThe delta pmf value is:\t%f\n\tThe dist-norm area is:\t%f"%(c2, area, curve1[0,0], curve1[-1,0], areaa, areab, deltapmf, newarea))
+        
+        plt.plot(x_y_curve1[:,0],x_y_curve1[:,1],lw=1.5,marker='s', \
+                     markevery=cowboe_settings['mark every'], \
+                         ms=cowboe_settings['marker size'],\
+                             label=c1)
+        plt.plot(x_y_curve2[:,0],x_y_curve2[:,1],lw=1.5,marker='^', \
+                     markevery=cowboe_settings['mark every'], \
+                         ms=cowboe_settings['marker size'],\
+                             label=c2)
+        plt.fill_between(x_y_curve1[:,0], x_y_curve1[:,1],x_y_curve2[:,1],\
+                         color=cowboe_settings['fill colour'], \
+                             alpha=0.25)
+        
+        #plt.title(r'%s-%s - $\xi$ vs PMF'%(c1,c2))
+        plt.xlabel(cowboe_settings["reaction coordinate unit"],fontsize=14,weight='bold')
+        plt.ylabel(cowboe_settings["PMF unit"],fontsize=14,weight='bold')
+        plt.legend(loc='best')
+        plt.xticks(fontsize=14)
+        plt.yticks(fontsize=14)
+        if norm_area:
+            deviation = newarea
+        else:
+            deviation = area 
+        if annote:
+            plt.annotate('deviation = {:.4f}'.format(deviation), # this is the text
+                           (max(x_y_curve2[:,0])-2,min(x_y_curve2[:,1])+2), # this is the point to label
+                           textcoords="axes fraction", # how to position the text
+                           xytext=(0.79,0.04), # distance from text to points (x,y)
+                           ha='center',bbox=dict(boxstyle='round,pad=0.2', fc='red', alpha=0.25), fontsize=12)
+        
+        plt.savefig(savefile+'.{}'.format(cowboe_settings['fig extension']), bbox_inches='tight', dpi=300)
+        plt.show()
+        plt.close()
+        
+        output = {
+            'result':area,
+            'above':areaa,
+            'below':areab,
+            'rc':rc,
+            'deltapmf':deltapmf,
+            'norm_area':newarea,
+            'deltapmf_above':areaa*(curve1[1,0]-curve1[0,0])/rc,
+            'deltapmf_below':areab*(curve1[1,0]-curve1[0,0])/rc,
+            'rc_range':[curve1[0,0], curve1[-1,0]]
+            }
+        #pickle_dump(output,savefile)
+        json_dump(output,savefile)
+        
+        return output    
+    
     testfile = kwargs['test']
     benchfile = kwargs['bench']
+    checkarea = kwargs.get('area', False)
+    annote = kwargs.get('annotation', True)
+    norm_area = kwargs.get('norm_area',False)
+    spl= kwargs.get('splices',[0,0])
     
     name = Path(testfile).name.split('.')[0]
     
-    benchfile = removeinf_and_gradient(benchfile)
-    testfile = removeinf_and_gradient(testfile)
+    benchfile = removeinf_and_gradient(benchfile,spl[0])
+    testfile = removeinf_and_gradient(testfile,spl[1])
     #pmfplot(benchfile, testfile, 'errorbar_pmf_{}'.format(name))
-    outp = pmf_vdist(benchfile, testfile, 'vdist_pmf_{}'.format(name))
+    #outp = pmf_vdist(benchfile, testfile, 'vdist_pmf_{}'.format(name))
     #pmf_errordist(benchfile, testfile, 'vdist_pmf_{}'.format(name))
-    #pmfarea(benchfile, testfile, 'area_pmf_{}'.format(name))
+    if checkarea:
+        outp = pmfarea(benchfile, testfile, 'area_pmf_{}'.format(name))
+    else:
+        outp = pmf_vdist(benchfile, testfile, 'vdist_pmf_{}'.format(name))
 
     
     return outp
@@ -2723,6 +2967,12 @@ def NMprogress(**kwargs):
     None.
 
     '''
+
+
+    fi = mticker.ScalarFormatter(useOffset=False, useMathText=True)
+    gi = lambda x,pos : "${}$".format(fi._formatSciNotation('%1.4e' % x))
+    fmti = mticker.FuncFormatter(gi)
+    
     def area(x,y):
     
         a = math.sqrt((x[0]-x[1])**2 + (y[0]-y[1])**2)
@@ -2800,7 +3050,7 @@ def NMprogress(**kwargs):
             #              ha='center',
             #              size=si)
         
-        plt.annotate('area = {0:0.4e}'.format(a), # this is the text
+        plt.annotate('area = {}'.format(fmti(a)), # this is the text
                           (max([np.log(i) for i in points[:,:,0].flatten()])-0.35,max(points[:,:,1].flatten())+0.1), # this is the point to label
                           textcoords="axes fraction", # how to position the text
                           xytext=(0.5,0.93), # distance from text to points (x,y)
@@ -3128,7 +3378,7 @@ def cowboeKS(**kwargs):
     percentage : float or int,
     
         percentage of the total sampling to perform the test on
-        eg. if 80 is givenm window n's total data will be compared to 80%
+        eg. if 80 is given window n's total data will be compared to 80%
         of its data to test the null hypothesis. 
         
 
@@ -3256,7 +3506,7 @@ def cowboe_OVL (**kwargs):
             fig, ax = plt.subplots()
             sns.distplot(hist1,label='window %d'%i,color='r')
             sns.distplot(hist2,label='window %d'%j,color='b')
-            plt.legend()
+            #plt.legend()
             plt.xlabel(cowboe_settings["reaction coordinate unit"],fontsize=14,weight='bold')
             plt.ylabel('probability density function',fontsize=14,weight='bold')
             plt.savefig(os.path.join(os.sep,loc,'windows-{}&{}.{}'.format(i,j,cowboe_settings['fig extension'])), bbox_inches='tight', dpi=300)
@@ -3373,7 +3623,7 @@ def cowboe_trajcut(**kwargs):
     
     per = kwargs['percentage']
     loc = kwargs['location']
-    listfile = kwargs['listfile']
+    listfile = kwargs.get('listfile', wham_settings["metadatafile"])
     name = kwargs['name']
     start = kwargs['start']
     
@@ -3434,6 +3684,411 @@ def cowboe_pmfplot(**kwargs):
     plt.show()
     plt.close()    
 
+def lammps_input(inputs):
+    '''
+    generated lammps input file and other related files
+
+    '''
+    def json_dump(d,filename):
+        json = j.dumps(d)
+        f = open("%s.json"%filename,"w")
+        f.write(json)
+        f.close()  
+        
+    def step_allocator(st, step_size, samplingconsidered, w) :  
+
+        st_step = np.array([int(s*10**6/step_size) for s in st])
+        st_step[np.argmin(st_step)] += int(np.sum(st)*10**6/step_size - np.sum(st_step))
+    
+        return st_step
+    
+    def reruntime(need, done):
+        return int((need-done)*30*60/6000000)+15
+
+    A                   =inputs['A']
+    B                   =inputs['B']
+    V                   =inputs['V']
+    wins                = inputs['wins']
+    loc                 = inputs['loc']
+    lmr                 = inputs['lmr']
+    datafileloc         = inputs['datafileloc']
+    server              = inputs['server']
+    total_cpu           = inputs['total_cpu']
+    pair                = inputs['pair']
+    skin                = inputs['skin']
+    ts                  = inputs['ts']
+    kspace              = inputs['kspace']
+    mpc                 = inputs['mpc']
+    mail                = inputs['mail']
+    ringcoms            = inputs['ringcoms']
+    traj                = inputs['traj']
+    outputloc           = inputs['outputloc']
+    subloc              = inputs['subloc']
+    f                   = inputs['f']
+    subtype             = inputs['subtype']
+    justsh              = inputs['justsh'] 
+    sc                  = inputs['sc']
+    
+    try:
+        wstart = inputs['wstart']
+        wstop  = inputs['wstop']+1
+    
+    except:
+        wstart = 0
+        wstop  = wins
+        
+    lmr_data = np.loadtxt(loc+lmr,dtype='float64')
+    left, middle, right, K, samplingtime = lmr_data[:,0], lmr_data[:,1], lmr_data[:,2], \
+                                 lmr_data[:,3], lmr_data[:,4]
+    
+    st_step = step_allocator(samplingtime, 2.0, sc, wins) #section in ns, stepsize in fs, sampling for each windows 
+
+    #TIME = np.array([int(round(step*30/6000000))+1 for step in st_step])
+    #TIME_min = np.array([int(60*(step*30/6000000))+60 for step in st_step])
+    if server == 'graham': TIME_min = np.array([int(step/3600)+60 for step in st_step])
+    elif server =='cedar' or server == 'niagara': TIME_min = np.array([int(step/3900) for step in st_step])
+    else: TIME_min = np.array([int(step/3600)+60 for step in st_step])
+    #print(st_step, TIME_min)
+    
+    if server=="beluga" or server=='niagara':
+        corepnode=40
+        total_cpu=200
+        
+    elif server=="cedar":
+        corepnode=48
+        total_cpu=192
+    else: 
+        corepnode=32
+        total_cpu=160
+        
+    node = int(total_cpu/corepnode)
+    
+    st=time.time()
+    oldstdout=sys.stdout
+    
+    os.chdir(outputloc)
+    print('\nFor\tA : {}\tB : {}\t\tV : {}\n'.format(A,B,V))
+    print('\nStart: {:.4f} {}, Stop: {:.4f} {}, Windows: {:d}\n'.format(left[0], chr(8491), right[-1], chr(8491), wins))
+    print(('Pair distance \t= %.4f %s\nTime step \t= %.4f\nKspace \t\t= %s\nNo. of nodes \t= %d')%(pair, str(chr(8491)), ts, kspace, node))
+    print(('Server \t\t= %s\nMem-per-cpu \t= %s MB\nCore-per-node \t= %d\ntotal-cpu \t= %d')%(server,mpc,corepnode,total_cpu))
+    print(('Mailing \t= %s\nTrajectory \t= %s\n')%(mail,traj))
+    
+    ftime = str(datetime.now().strftime('%H-%M-%S_%d-%m-%Y'))
+
+    for fold in f:
+        
+        '''
+        change to output folder 100mc, 110mc etc
+        check and creates folder with timestamp
+        changes location to the new folder
+        '''
+        #print(inspect.getargspec(inputs)[0])
+        folder=fold
+        path=outputloc+'/%s'%folder
+        if os.path.isdir(path):os.chdir(path)
+        else:
+            os.mkdir(path)
+            os.chdir(path)
+        
+        os.mkdir('%s_%s-%s'%(server, ftime, fold))
+
+        path = path+'/'+'%s_%s-%s'%(server, ftime, fold)
+        os.chdir(path)
+        
+        #################### to get proper data file close to middle posisiton ##############
+        if justsh == 'nd':
+            data_dict = {}
+            actual_data_files = np.arange(2.5,14.5,0.5)
+            
+            for index, d in enumerate(actual_data_files):
+                data_dict.update({'%d.data'%index:d})
+            
+            vals = np.fromiter(data_dict.values(), dtype=float)
+            #print(data_dict,vals)        
+            for index, m in enumerate(middle):
+                val_min = np.argmin(np.array([abs(d-m) for d in vals]))
+                scr = '{}/{}.data'.format(datafileloc,val_min)
+                dst = '{}/{}.data'.format(path,index)
+                shutil.copy(scr, dst)
+            
+        ####################to make colvar %d.inp file#########################
+        no=0
+        for i in range(wstart, wstop):
+            
+            l = left[i]
+            m = middle[i]
+            r = right[i]
+        
+            filename='%d.inp'%i
+            no=no+1
+            sys.stdout=open(filename,'w')
+            print(('indexFile ../group.ndx\ncolvarsTrajAppend no\ncolvarsTrajFrequency 500\ncolvarsRestartFrequency 500\n\ncolvar {\nname dist\ndistanceZ {    \nmain { indexGroup pol }    \nref { indexGroup lay1 }\naxis (1,0,0) \nforceNoPBC yes   \n}\nlowerBoundary %f\nupperBoundary %f\nhardUpperBoundary yes\nhardLowerBoundary  yes\n}\ncolvar {\nname d\ndistance {\ngroup1 {indexGroup e1}\ngroup2 {indexGroup e2}\n}\n}\n\n\ncolvar {\nname dv\ndistanceVec {\ngroup1 {indexGroup e1}\ngroup2 {indexGroup e2}\n}\n}\n\n\ncolvar {\nname dd\ndistanceDir {\ngroup1 {indexGroup e1}\ngroup2 {indexGroup e2}\n}\n}\n\n\ncolvar {\nname di\ndistanceInv {\ngroup1 {indexGroup e1}\ngroup2 {indexGroup e2}\n}\n}\n\nharmonic {  \ncolvars dist  \noutputCenters on  \nforceConstant %.4f \ncenters %f         # initial distance  \ntargetCenters %f  # final distance  \ntargetNumSteps %d  \ntargetNumstages 0\noutputAccumulatedWork on\n}')%(l,r,K[i],m,m,st_step[i]))
+            sys.stdout.close();
+        sys.stdout=oldstdout;
+        
+        ####################to make colvar ini%d.inp file#########################
+    
+        no=0
+        for i in range(wstart, wstop):
+        
+            l = left[i]
+            m = middle[i]
+            r = right[i]
+        
+            filename='ini%d.inp'%i
+            no=no+1
+            sys.stdout=open(filename,'w')
+            print(('indexFile ../group.ndx\ncolvarsTrajAppend no\ncolvarsTrajFrequency 500\ncolvarsRestartFrequency 500\n\ncolvar {\nname dist\ndistanceZ {    \nmain { indexGroup pol }    \nref { indexGroup lay1 }\naxis (1,0,0)    \n}\n}\n\nharmonic {  \ncolvars dist  \noutputCenters on  \nforceConstant %.4f  \ncenters %f         # initial distance  \ntargetCenters %f  # final distance  \ntargetNumSteps 200000  \ntargetNumstages 0\noutputAccumulatedWork on\n}')%(K[i],m,m))
+    
+            sys.stdout.close();
+        sys.stdout=oldstdout;
+        
+        ########################to make shell script#############################
+    
+        for i in range (wins):
+            filename='%d.sh'%i
+            sys.stdout=open(filename,'w')
+            print('#!/bin/bash -l')
+            if server =="cedar" or server =="beluga" or server == 'niagara':    
+                print('#SBATCH --account=def-xili')
+            else:
+                print('#SBATCH --account=rrg-xili')
+            print(('#SBATCH -N %d')%node)
+            if server != 'niagara':
+                print(('#SBATCH -n %d')%(node*corepnode))
+                print(('#SBATCH --mem-per-cpu=%d')%mpc)
+                if K[i] > 100.0 :
+                    print(('#SBATCH --time=00:%d:00')%int(TIME_min[i]+60))
+                else:
+                    print(('#SBATCH --time=00:%d:00')%int(TIME_min[i]))
+                
+            else:
+                print(('#SBATCH --ntasks=%d')%(node*corepnode))
+                if TIME_min[i] <= 24*60 and K[i] > 100.0 : print('#SBATCH --time=00:{}:00'.format(TIME_min[i]+60))
+                elif TIME_min[i] <= 24*60 and K[i] < 100.0 : print('#SBATCH --time=00:{}:00'.format(TIME_min[i]))
+                else : print(('#SBATCH --time=23:59:59'))
+                
+            if mail=='TRUE':
+                print('#SBATCH --mail-type=ALL')
+                print('#SBATCH --mail-user=vasudevn@mcmaster.ca')
+            
+            
+            print(('#SBATCH -J {}-win-{}').format(subloc.split('/')[-1],i))
+            
+            if server=="beluga":
+                print('\nmodule load nixpkgs/16.09  intel/2018.3  openmpi/3.1.2\nmodule load lammps-omp/20190807\n')
+                print(('srun -n %d lmp_icc_openmpi  < %d.in')%(node*corepnode,i))
+            elif server == "cedar" or server == "graham":
+                print('\nmodule load nixpkgs/16.09  intel/2018.3  openmpi/3.1.2\nmodule load lammps-omp/20190807\n')
+                print(('srun -n %d lmp_icc_openmpi  < %d.in')%(node*corepnode,i))
+            elif server == 'niagara':
+                #print('\nmodule load intel/2018.2 intelmpi/2018.2 fftw-mpi/3.3.7\n')
+                print('\nmodule load intel/2019u3  intelmpi/2019u3 fftw/3.3.8\n')
+                print(('srun lmp < %d.in')%(i))
+            sys.stdout.close();
+        sys.stdout=oldstdout;
+        
+        ########################to make lammps in file#############################
+    
+
+        if subtype =="100mc": #8086
+            groupids=["group cel id 1:10080","group pol id 10081:10209","group water id 10210:28209","group celandpol id 1:10080 10081:10209","group lay1 id 757:1008 1765:2016 2773:3024 3781:4032 4789:5040 5797:6048 6805:7056 7813:8064	 8821:9072 9829:10080","group celandwater id 1:10080 10210:28209","group2ndx ../group.ndx cel pol water lay1 celandpol celandwater polandwater r1 r2 r3 r4 r5 e1 e2","group polandwater id 10081:10209	10210:28209","group r1 id 10081:10102 10206:10209","group r2 id 10103:10122 10202:10205","group r3 id 10123:10141 10194:10197 10198:10201","group r4 id 10141:10160 10186:10189 10190:10193","group r5 id 10161:10185","group e1 id 10083","group e2 id 10166"]
+        if subtype =="100pe": #8087
+            groupids=["group cel id 1:10080","group pol id 10081:10188","group water id 10189:28188","group celandpol id 1:10080 10081:10188","group lay1 id 757:1008 1765:2016 2773:3024 3781:4032 4789:5040 5797:6048 6805:7056 7813:8064	 8821:9072 9829:10080","group celandwater id 1:10080 10189:28188","group2ndx ../group.ndx cel pol water lay1 celandpol celandwater polandwater r1 r2 r3 r4 r5 e1 e2","group polandwater id 10081:10188	10189:28188","group r1 id 10081:10103","group r2 id 10104:10124","group r3 id 10125:10145","group r4 id 10146:10166","group r5 id 10167:10188","group e1 id 10083","group e2 id 10177"]
+        if subtype =="110mc": #13462
+            groupids=["group cel id 1:10080","group pol id 10081:10209","group water id 10210:28209","group celandpol id 1:10080 10081:10209","group lay1 id 1:504 757:1260 2521:3024 4537:5040 6553:7056","group celandwater id 1:10080 10210:28209","group2ndx ../group.ndx cel pol water lay1 celandpol celandwater polandwater r1 r2 r3 r4 r5 e1 e2","group polandwater id 10081:10209	10210:28209","group r1 id 10081:10102 10206:10209","group r2 id 10103:10122 10202:10205","group r3 id 10123:10141 10194:10197 10198:10201","group r4 id 10141:10160 10186:10189 10190:10193","group r5 id 10161:10185","group e1 id 10083","group e2 id 10166"]
+        if subtype =="110pe": #13463
+            groupids=["group cel id 1:10080","group pol id 10081:10188","group water id 10189:28188","group celandpol id 1:10080 10081:10188","group lay1 id 1:504 757:1260 2521:3024 4537:5040 6553:7056","group celandwater id 1:10080 10189:28188","group2ndx ../group.ndx cel pol water lay1 celandpol celandwater polandwater r1 r2 r3 r4 r5 e1 e2","group polandwater id 10081:10188	10189:28188","group r1 id 10081:10103","group r2 id 10104:10124","group r3 id 10125:10145","group r4 id 10146:10166","group r5 id 10167:10188","group e1 id 10083","group e2 id 10177"]
+        if subtype =="110smc": #13540
+            groupids=["group cel id 1:10200","group pol id 10201:10329","group water id 10330:28449","group celandpol id 1:10200 10201:10329","group lay1 id 1:2640","group celandwater id 1:10200 10330:28449","group2ndx ../group.ndx cel pol water lay1 celandpol celandwater polandwater r1 r2 r3 r4 r5 e1 e2","group polandwater id 10201:10329 10330:28449","group r1 id 10201:10222 10326:10329","group r2 id 10223:10242 10322:10325","group r3 id 10243:10261 10314:10321","group r4 id 10262:10280 10306:10313","group r5 id 10281:10305","group e1 id 10203","group e2 id 10286"]
+        if subtype =="110spe":#13541
+            groupids=["group cel id 1:10200","group pol id 10201:10308","group water id 10309:28428","group celandpol id 1:10200 10201:10308","group lay1 id 1:2640","group celandwater id 1:10200 10309:28428","group2ndx ../group.ndx cel pol water lay1 celandpol celandwater polandwater r1 r2 r3 r4 r5 e1 e2","group polandwater id 10201:10308 10309:28428","group r1 id 10201:10223","group r2 id 10224:10244","group r3 id 10245:10265","group r4 id 10266:10286","group r5 id 10287:10308","group e1 id 10203","group e2 id 10297"]
+    
+            
+        no=0;
+        for k in range(wstart, wstop):
+        
+            filename='%d.in'%k
+            no=no+1
+            sys.stdout=open(filename,'w')
+            print(('#colvar - %s - window - %d\n\nshell mkdir dz\nshell cd dz\nshell mkdir results\nshell mkdir restarts\n')%(subtype,k))
+            print(('#initial configuration\n\nunits real\natom_style full\ndimension 3\nnewton on\nboundary  p p p\nneighbor %.2f bin\nneigh_modify    delay 0 every 1 check yes page 1000000 one 50000')%skin)
+            print(('\nbond_style      harmonic\nangle_style     harmonic\ndihedral_style  harmonic\npair_style lj/cut/coul/long %f\npair_modify mix geometric shift yes\nkspace_style    %s\nspecial_bonds lj/coul 0 0 1 angle yes dihedral yes')%(pair,kspace))
+            print(('\n#reading data and thermo details\n\nread_data       ../%d.data\n')%k)
+            print(('#group assignment\n\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n')%(groupids[0],groupids[1],groupids[2],groupids[4],groupids[3],groupids[5],groupids[7],groupids[8],groupids[9],groupids[10],groupids[11],groupids[12],groupids[13],groupids[14],groupids[6]))
+    
+            
+            if subtype =="100mc" or subtype =="100pe":
+                shake="fix     	1 all shake 1e-4 20 0 b 3 4 6 7 #a 12"
+                recen="fix recen1	lay1 recenter 5.800 1.389 1.278 units box"
+            elif subtype=="110mc" or subtype=="110pe":
+                shake="fix     	1 all shake 1e-4 20 0 b 3 4 6 7 #a 12"
+                recen="fix recen1	lay1 recenter 8.21961 0.445948 -0.483543 units box"
+            else:
+                shake="fix     	1 all shake 1e-4 20 0 b 3 4 6 9 #a 12"
+                recen="fix recen1	lay1 recenter 8.62593 0.401141 -0.163193 units box"
+                
+            print(('\nreset_timestep  0\ntimestep	%d\n')%ts)
+            print(('\nvelocity all create 300.0 %d rot yes dist gaussian')%random.randint(9999,10000000))
+            print(('\n#NVT fix and shake\n%s\nfix 		2 all nvt temp 300 300 100\nfix colvar1 all colvars ../ini%d.inp tstat 2 output %s%d unwrap no\n%s\nrun 200000\nunfix colvar1\nunfix 1\nunfix 2\nunfix recen1\n')%(shake,k,subtype,k,recen))
+            print('\nreset_timestep  0\ntimestep	2\n')
+            print(('\n#NVT fix and shake\n%s\nfix 		2 all nvt temp 300 300 100\nfix colvar1 all colvars ../%d.inp tstat 2 output %s%d unwrap no\n\n')%(shake,k,subtype,k))
+            print(('\n#compute section\ncompute  com1 cel com\nfix com11 cel ave/time 1000 1 1000 c_com1[*] file ./results/%d-cel.dat\ncompute  com2 lay1 com\nfix com12 lay1 ave/time 1000 1 1000 c_com2[*] file ./results/%d-lay1.dat\ncompute  com3 pol com\nfix com13 pol ave/time 1000 1 1000 c_com3[*] file ./results/%d-pol.dat\n')%(k,k,k))
+            if ringcoms=='TRUE': 
+                print('\ncompute rgpol pol gyration\ncompute msd1 pol msd\n\nvariable rgp1 equal c_rgpol\n')
+                print(('variable st equal step\n\nvariable etoe equal "sqrt((xcm(e1,x)-xcm(e2,x))^2 + (xcm(e1,y)-xcm(e2,y))^2 + (xcm(e1,z)-xcm(e2,z))^2 )"\nvariable oetoe equal 1/v_etoe\n\nvariable as equal "(xcm(e2,x) - xcm(e1,x))*v_oetoe"\nvariable asy equal "(xcm(e2,y) - xcm(e1,y))*v_oetoe"\n\nvariable asz equal "(xcm(e2,z) - xcm(e1,z))*v_oetoe"\n\nvariable k1 equal "sqrt((xcm(r1,x)-xcm(r2,x))^2 + (xcm(r1,y)-xcm(r2,y))^2 + (xcm(r1,z)-xcm(r2,z))^2 )"\nvariable k2 equal "sqrt((xcm(r2,x)-xcm(r3,x))^2 + (xcm(r2,y)-xcm(r3,y))^2 + (xcm(r2,z)-xcm(r3,z))^2 )"\nvariable k3 equal "sqrt((xcm(r3,x)-xcm(r4,x))^2 + (xcm(r3,y)-xcm(r4,y))^2 + (xcm(r3,z)-xcm(r4,z))^2 )"\nvariable k4 equal "sqrt((xcm(r4,x)-xcm(r5,x))^2 + (xcm(r4,y)-xcm(r5,y))^2 + (xcm(r4,z)-xcm(r5,z))^2 )"\n\nvariable angx equal angmom(pol,x)\nvariable angy equal angmom(pol,y)\nvariable angz equal angmom(pol,z)\n\nfix etoes all print 500 "${st} ${as} ${asy} ${asz} ${etoe}" file ./results/%d-etoes.dat title "#etoe"\nfix rogpol all print 500 "${st} ${rgp1}" file ./results/%d-rogpol.dat title "#Rg-pol"\nfix angmompol all print 500 "${st} ${angx} ${angy} ${angz}" file ./results/%d-angmompol.dat title "#angmom_x angmom_y angmom_z"\nfix msdpol pol ave/time 500 1 500 c_msd1[*] file ./results/%d-msdpol.dat\nfix kuhns all print 500 "${st} ${k1} ${k2} ${k3} ${k4}" file ./results/%d-kuhns.dat title "#k1 k2 k3 k4"')%(k,k,k,k,k))
+            print(('\n%s')%recen)
+            print('\nvariable d equal c_com3[1]-c_com2[1]')
+            print('\n#output section\nrestart		1000  ./restarts/crystal.restart1 ./restarts/crystal.restart2\nrestart 50000 ./restarts/ps.restart')
+            #if traj=='TRUE':print('\ndump    dump3 all custom 5000 ps1.lammpstrj id type xu yu zu vx vy vz ix iy iz\ndump dcd1 all dcd 5000 ps1.dcd')
+            if traj=='TRUE':print('\ndump    dump3 all custom 5000 ps1.lammpstrj id type x y z vx vy vz ix iy iz\ndump dcd1 all dcd 5000 ps1.dcd')
+            else:print('\n#no traj for this run#\n')
+            print(('\n\nwrite_data	npt.data\n\nthermo          5000\nthermo_style  	custom step press temp vol density  pe ke etotal evdwl ecoul elong epair ebond eangle edihed  emol   c_com3[1] c_com2[1] v_d \nthermo_modify flush yes\n\nrun %d upto')%st_step[k])
+            
+            
+            sys.stdout.close(); 
+        sys.stdout=oldstdout;
+        
+    
+        no=0;
+        for k in range(wstart, wstop):
+        
+            filename='%drestart.in'%k
+            no=no+1
+            sys.stdout=open(filename,'w')
+            print(('#colvar - %s - window - %d - restart\n\nshell mkdir dz-restart\nshell cd dz-restart\nshell mkdir results\n')%(subtype,k))
+            print(('#initial configuration\n\nunits real\natom_style full\ndimension 3\nnewton on\nboundary  p p p\nneighbor %.2f bin\nneigh_modify    delay 0 every 1 check yes page 1000000 one 50000')%skin)
+            print(('\nbond_style      harmonic\nangle_style     harmonic\ndihedral_style  harmonic\npair_style lj/cut/coul/long %f\npair_modify mix geometric shift yes\nkspace_style    %s\nspecial_bonds lj/coul 0 0 1 angle yes dihedral yes')%(pair,kspace))
+            print(('\n#reading data and thermo details\n\nread_data       ../restart.data\n'))
+            print(('#group assignment\n\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n')%(groupids[0],groupids[1],groupids[2],groupids[4],groupids[3],groupids[5],groupids[7],groupids[8],groupids[9],groupids[10],groupids[11],groupids[12],groupids[13],groupids[14],groupids[6]))
+            print(('\n\ntimestep 2'))
+            
+            if subtype =="100mc" or subtype =="100pe":
+                shake="fix     	1 all shake 1e-4 20 0 b 3 4 6 7 #a 12"
+                recen="fix recen1	lay1 recenter 5.800 1.389 1.278 units box"
+            elif subtype=="110mc" or subtype=="110pe":
+                shake="fix     	1 all shake 1e-4 20 0 b 3 4 6 7 #a 12"
+                recen="fix recen1	lay1 recenter 8.21961 0.445948 -0.483543 units box"
+            else:
+                shake="fix     	1 all shake 1e-4 20 0 b 3 4 6 9 #a 12"
+                recen="fix recen1	lay1 recenter 8.62593 0.401141 -0.163193 units box"
+                
+            print(('\n#NVT fix and shake\n%s\nfix 		2 all nvt temp 300 300 100\nfix colvar1 all colvars ../%d.inp tstat 2 output %s%d unwrap no\n\n')%(shake,k,subtype,k))
+            print(('\n#compute section\ncompute  com1 cel com\nfix com11 cel ave/time 1000 1 1000 c_com1[*] file ./results/%d-cel.dat\ncompute  com2 lay1 com\nfix com12 lay1 ave/time 1000 1 1000 c_com2[*] file ./results/%d-lay1.dat\ncompute  com3 pol com\nfix com13 pol ave/time 1000 1 1000 c_com3[*] file ./results/%d-pol.dat\n')%(k,k,k))
+            if ringcoms=='TRUE': 
+                print('\ncompute rgpol pol gyration\ncompute msd1 pol msd\n\nvariable rgp1 equal c_rgpol\n')
+                print(('variable st equal step\n\nvariable etoe equal "sqrt((xcm(e1,x)-xcm(e2,x))^2 + (xcm(e1,y)-xcm(e2,y))^2 + (xcm(e1,z)-xcm(e2,z))^2 )"\nvariable oetoe equal 1/v_etoe\n\nvariable as equal "(xcm(e2,x) - xcm(e1,x))*v_oetoe"\nvariable asy equal "(xcm(e2,y) - xcm(e1,y))*v_oetoe"\n\nvariable asz equal "(xcm(e2,z) - xcm(e1,z))*v_oetoe"\n\nvariable k1 equal "sqrt((xcm(r1,x)-xcm(r2,x))^2 + (xcm(r1,y)-xcm(r2,y))^2 + (xcm(r1,z)-xcm(r2,z))^2 )"\nvariable k2 equal "sqrt((xcm(r2,x)-xcm(r3,x))^2 + (xcm(r2,y)-xcm(r3,y))^2 + (xcm(r2,z)-xcm(r3,z))^2 )"\nvariable k3 equal "sqrt((xcm(r3,x)-xcm(r4,x))^2 + (xcm(r3,y)-xcm(r4,y))^2 + (xcm(r3,z)-xcm(r4,z))^2 )"\nvariable k4 equal "sqrt((xcm(r4,x)-xcm(r5,x))^2 + (xcm(r4,y)-xcm(r5,y))^2 + (xcm(r4,z)-xcm(r5,z))^2 )"\n\nvariable angx equal angmom(pol,x)\nvariable angy equal angmom(pol,y)\nvariable angz equal angmom(pol,z)\n\nfix etoes all print 500 "${st} ${as} ${asy} ${asz} ${etoe}" file ./results/%d-etoes.dat title "#etoe"\nfix rogpol all print 500 "${st} ${rgp1}" file ./results/%d-rogpol.dat title "#Rg-pol"\nfix angmompol all print 500 "${st} ${angx} ${angy} ${angz}" file ./results/%d-angmompol.dat title "#angmom_x angmom_y angmom_z"\nfix msdpol pol ave/time 500 1 500 c_msd1[*] file ./results/%d-msdpol.dat\nfix kuhns all print 500 "${st} ${k1} ${k2} ${k3} ${k4}" file ./results/%d-kuhns.dat title "#k1 k2 k3 k4"')%(k,k,k,k,k))
+            print(('\n%s')%recen)
+            print('\nvariable d equal c_com3[1]-c_com2[1]')
+            print('\n#output section\nrestart		1000  ../dz/restarts/crystal.restart1 ../dz/restarts/crystal.restart2\nrestart 50000 ../dz/restarts/ps.restart')
+            if traj=='TRUE':print('\ndump    dump3 all custom 5000 ps1.lammpstrj id type xu yu zu vx vy vz ix iy iz\ndump dcd1 all dcd 5000 ps1.dcd')
+            else:print('\n#no traj for this run#\n')
+            print(('\n\nwrite_data	npt.data\n\nthermo          5000\nthermo_style  	custom step press temp vol density  pe ke etotal evdwl ecoul elong epair ebond eangle edihed  emol   c_com3[1] c_com2[1] v_d \nthermo_modify flush yes\n\nrun %d upto')%st_step[k])
+            
+            
+            sys.stdout.close();
+        sys.stdout=oldstdout;
+        
+
+        
+        ########################## copying files #############################
+
+        for jj in range(wstart, wstop):
+            win=jj
+            os.mkdir(str(win))
+            scr1="%s/%d.inp"%(path,jj)
+            scr2="%s/ini%d.inp"%(path,jj)
+            scr3="%s/%d.in"%(path,jj)
+            scr4="%s/%d.sh"%(path,jj) 
+            scr5="%s/%d.data"%(path,jj)
+            scr6="%s/%drestart.in"%(path,jj)
+            #scr7="%s/%drerun.in"%(path,jj)
+            dst="%s/%d/"%(path,jj)
+
+            if justsh == "inp":
+                shutil.move(scr1,dst) #inpfile
+            if justsh == "iinp":
+                shutil.move(scr2,dst) #initial inp file
+            if justsh == "in":
+                shutil.move(scr3,dst) #in file
+            if justsh == "sh":
+                shutil.move(scr4,dst) #sh file
+            if justsh == "data":
+                shutil.move(scr5,dst) #datafile
+            if justsh == "restart":
+                shutil.move(scr6,dst) #restart script
+            
+            if justsh == "n":
+                shutil.move(scr1,dst) #colvar input
+                shutil.move(scr2,dst) #initial colvar input
+                shutil.move(scr3,dst) #lammps input
+                shutil.move(scr4,dst) #shell script
+                shutil.move(scr6,dst) #lammps restart input
+                #shutil.move(scr7,dst) #lammps rerun input
+                
+            elif justsh == "nd":
+                shutil.move(scr1,dst) #colvar input
+                shutil.move(scr2,dst) #initial colvar input
+                shutil.move(scr3,dst) #lammps input
+                shutil.move(scr4,dst) #shell script
+                shutil.move(scr5,dst) #data file
+                shutil.move(scr6,dst) #lammps restart input
+                #shutil.move(scr7,dst) #lammps rerun input
+
+
+        ########################### prep file for job submission ###############
+                
+        sys.stdout= open('sub.sh','a')
+        for i in range(wstart, wstop):
+            print(("cd %s/%d/;\ndos2unix %d.sh;\nsbatch %d.sh;")%(subloc,i,i,i)) 
+        sys.stdout.close();
+        sys.stdout=oldstdout
+        
+        ########################### spliting file #############################
+        
+        sys.stdout= open('split.sh','a')
+        print('source ~/ENV/p37/bin/activate')
+        for i in range(wstart, wstop):
+            print('python ~/datafiles/tsplitsingle.py {} {}/{}/dz {};'.format(i, subloc, i,subtype))
+        sys.stdout.close();
+        sys.stdout=oldstdout
+        
+        ##########################  wham calculation file #####################
+        
+        
+        sys.stdout = open('list.txt','w')
+        for i in range(wstart, wstop):
+            print('{}{}.colvars.split.traj {} {} {}'.format(subtype, i, middle[i], K[i], 60))
+        sys.stdout.close();
+        sys.stdout=oldstdout
+        
+        ########################### cp all traj once done #####################
+        
+        sys.stdout = open('cp.sh','w')
+        for i in range(wstart, wstop):
+            print('cp {}/{}/dz/{}{}.colvars.split.traj -t {};'.format(subloc, i, subtype, i,subloc))
+        sys.stdout.close();
+        sys.stdout=oldstdout
+        
+        #######################################################################
+        
+        json_dump(inputs,'lammps_input_json')
+        et=time.time()
+        print(('\n\ntotal execution time:'), end=' ')
+        print(round((et-st),6), end=' ')
+        print('seconds\n')
+        
+        for index, t in enumerate(TIME_min):
+            if K[index] > 100.0:
+                print('window - {} = {} mins'.format(index, t+60))
+            else:
+                print('window - {} = {} mins'.format(index, t))
+        print('\n')
+        
+    os.chdir('/home/naveen/Desktop/P3/pmftest')
+    return True
+
+
 def settings_update():
     '''
     Prints instruction for updating default settings for the cowboe module and
@@ -3478,6 +4133,7 @@ if __name__ == '__main__':
     "fig extension"                 : 'pdf',
     "KS coefficent D"               : 1.36,
     "markers"                       : ['^','|','v','*','x','s','2','D','o','p'],
+    "colors"                        : ['b','g','r','k','c','y','darkorange','darkviolet','saddlebrown','slategray'],
     "mark every"                    : 3,
     "marker size"                   : 10,
     "xlim"                          : (2,16),
@@ -3520,6 +4176,7 @@ else :
     "fig extension"                 : 'pdf',
     "KS coefficent D"               : 1.36,
     "markers"                       : ['^','|','v','*','x','s','2','D','o','p'],
+    "colors"                        : ['b','g','r','k','c','y','darkorange','darkviolet','saddlebrown','slategray'],
     "mark every"                    : 3,
     "marker size"                   : 10,
     "xlim"                          : (2,16),
