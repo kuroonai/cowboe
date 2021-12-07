@@ -1512,10 +1512,13 @@ def multi_pmfcompare(**kwargs):
         Whether to mark y = 0 with a dashed line or not
     
     markers : list 
-        list of matplotlib markers to user for each curve
+        list of matplotlib markers to use for each curve
     
     colors : list
-        list of matplotlib plot colors to user for each curve
+        list of matplotlib plot colors to use for each curve
+        
+    linestyles : list
+        list of matplotlib plot line styles to use for each curve
     Returns
     -------
     None
@@ -1527,25 +1530,34 @@ def multi_pmfcompare(**kwargs):
     
     marks = kwargs.get('markers',cowboe_settings['markers'])
     colors = kwargs.get('colors',cowboe_settings['colors'])
+    linestyles = kwargs.get('linestyles',cowboe_settings['linestyles'])
     marks = marks[:len(frees)]
     colors = colors[:len(frees)]
+
+    # if linestyles == cowboe_settings['linestyles']:
+    linestyles = list(np.resize(linestyles, len(frees)))
+    linestyles =  linestyles[:len(frees)]   
+    # else:
+    #     linestyles = list(np.resize(linestyles, len(frees)))
+    #     linestyles =  linestyles[:len(frees)]    
+        
     markzero = kwargs.get('markzero',False)
     
-    for free1, splice, m, color  in zip(frees,splices, marks, colors):
+    for free1, splice, m, color, linestyle  in zip(frees,splices, marks, colors, linestyles):
         c1 = Path(free1).name.split('.')[0]
     
         free1 = np.loadtxt(free1)[splice:]
         f1, e1= free1[:,0:2], free1[:,2]
         if cowboe_settings['error bar'] : 
             plt.errorbar(f1[::,0], f1[::,1],yerr=e1, marker=m, c=color,\
-                         markevery=cowboe_settings['mark every'], \
+                         markevery=cowboe_settings['mark every'], ls=linestyle, \
                              lw=1.5,capsize=2,errorevery=cowboe_settings['error every'],\
                                  elinewidth=1.5,\
                                      ms=cowboe_settings['marker size'],\
                                      label=c1)
         else:
             plt.plot(f1[::,0], f1[::,1],lw=1.5, \
-                     marker=m, c=color,\
+                     marker=m, c=color, ls=linestyle,\
                          markevery=cowboe_settings['mark every'], \
                              ms=cowboe_settings['marker size'],\
                              label=c1)
@@ -4134,6 +4146,7 @@ if __name__ == '__main__':
     "KS coefficent D"               : 1.36,
     "markers"                       : ['^','|','v','*','x','s','2','D','o','p'],
     "colors"                        : ['b','g','r','k','c','y','darkorange','darkviolet','saddlebrown','slategray'],
+    "linestyles"                    : ['-','--','-.',':'],
     "mark every"                    : 3,
     "marker size"                   : 10,
     "xlim"                          : (2,16),
@@ -4177,6 +4190,7 @@ else :
     "KS coefficent D"               : 1.36,
     "markers"                       : ['^','|','v','*','x','s','2','D','o','p'],
     "colors"                        : ['b','g','r','k','c','y','darkorange','darkviolet','saddlebrown','slategray'],
+    "linestyles"                    : ['-','--','-.',':'],
     "mark every"                    : 3,
     "marker size"                   : 10,
     "xlim"                          : (2,16),
