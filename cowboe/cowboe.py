@@ -6,7 +6,7 @@ Module for optimization and selection of parameters for umbrella sampling
 
 ################################################
 
-COWBOE - Construction Of Windows Based On Energy
+COWBOE - Construction Of Windows Based On free Energy
 
 ################################################
 
@@ -61,8 +61,8 @@ Created on Mon Jan 20 15:19:02 2020
 
 """
 __all__ = ['pmftopoints','cowboe', 'cowboefit', 'settings_update','cowboeKS', 'cowboeRNM', 'cowboeNM',\
-           'progressfile', 'NMprogress', 'cowboe3Dsurface','cowboe_wham', 'pmfcompare', 'multi_pmfcompare',\
-           'cowboe_settings', 'wham_settings', 'cowboe_trajcut', 'cowboe_OVL', 'cowboe_pmfplot', 'pmfdiff','lammps_input']
+           'progressfile', 'NMprogress', 'cowboe3Dsurface','cowboe_wham', 'pmfcompare',\
+           'cowboe_settings', 'wham_settings', 'cowboe_trajcut', 'cowboe_OVL', 'cowboe_pmfplot', 'pmfdiff','lammps_input'] #'multi_pmfcompare'
 
 import os
 import sys
@@ -150,11 +150,15 @@ def pmftopoints(**kwargs):
     d_pol_smoothed = d_polyfit_smoothed
     
     # PMF and smoothened PMF plots
-    plt.plot(slopetime,dnoinf,c='r',label='actual', marker='^', ms=cowboe_settings['marker size'],markevery=cowboe_settings["mark every"]) # actual pmf
-    plt.plot(slopetime, d_pol_smoothed,c='g',label='polyfit - order = %d'%polyfitorder, marker='s', ms=cowboe_settings['marker size'],markevery=cowboe_settings["mark every"]) # smoothed pmf
+    plt.plot(slopetime,dnoinf,c='r',label='original', marker='^', ms=cowboe_settings['marker size'],markevery=cowboe_settings["mark every"]) # actual pmf
+    plt.plot(slopetime, d_pol_smoothed,c='g',label='fitted', marker='s', ms=cowboe_settings['marker size'],markevery=cowboe_settings["mark every"]) # smoothed pmf
     plt.xlabel(cowboe_settings['reaction coordinate unit'],fontsize=14,weight='bold')
-    plt.ylabel(cowboe_settings['PMF unit'],fontsize=14,weight='bold')
-    plt.legend()#plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.ylabel(r'PMF F($\xi$) (kcal/mol)',fontsize=14,weight='bold')
+    plt.xlim(cowboe_settings['xlim'])
+    plt.ylim(cowboe_settings['ylim'])
+    plt.yticks(range(int(cowboe_settings['ylim'][0]),int(cowboe_settings['ylim'][1]+2.0),2))
+
+    plt.legend(loc='best')#plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     # # plt.title('PMF and smoothened curves')
     plt.savefig('PMF-actual+polyfit.{}'.format(cowboe_settings['fig extension']),bbox_inches = 'tight', dpi=300)
     plt.show()
@@ -170,11 +174,15 @@ def pmftopoints(**kwargs):
     Grad_pol_smooth = np.array([abs(i) for i in np.loadtxt('pol_smooth-grad.txt')[:,1]]) # abs value of gradient of smoothed pmf
     
     # Gradient and smoothened gradient plots
-    plt.plot(pos,grad,c='r',label='actual', marker='^', ms=cowboe_settings['marker size'],markevery=cowboe_settings["mark every"])
-    plt.plot(slopetime, Grad_pol_smooth,c='g',label='polyfit - order = %d'%polyfitorder, marker='s', ms=cowboe_settings['marker size'],markevery=cowboe_settings["mark every"])
-    plt.legend()#plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.plot(pos,grad,c='r',label='original', marker='^', ms=cowboe_settings['marker size'],markevery=cowboe_settings["mark every"])
+    plt.plot(slopetime, Grad_pol_smooth,c='g',label='fitted', marker='s', ms=cowboe_settings['marker size'],markevery=cowboe_settings["mark every"])
+    # plt.legend(loc='best')#plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     plt.xlabel(cowboe_settings['reaction coordinate unit'],fontsize=14,weight='bold')
-    plt.ylabel(r'$\Delta$ PMF',fontsize=14,weight='bold')
+    plt.ylabel(r'dF($\xi$)/d$\xi$ (kcal/mol/$\AA$)',fontsize=14,weight='bold')
+    plt.xlim(cowboe_settings['xlim'])
+    plt.ylim(cowboe_settings['ylim'])
+    plt.yticks(range(int(cowboe_settings['ylim'][0]),int(cowboe_settings['ylim'][1]+2.0),2))
+
     # # plt.title(r'$\Delta$ PMF and smoothened curves')
     plt.savefig('gradient-actual+polyfit.{}'.format(cowboe_settings['fig extension']),bbox_inches = 'tight', dpi=300)
     plt.show()
@@ -202,17 +210,23 @@ def pmftopoints(**kwargs):
     extreme_values = y[extremes].astype(float)
     
     plt.plot(x[::-1],y[::-1])
-    plt.xlim((x[-1]-1, x[0]+1))
+    # plt.xlim(cowboe_settings['xlim'])
+
+    # plt.xlim((x[-1]-1, x[0]+1))
     # plt.plot(x,y)
     # plt.xlim((x[0]+1, x[-1]-1))
     plt.plot(x[extremes], y[extremes], '*',c ='k')
     plt.ylabel(r'$\Delta$ PMF',fontsize=14,weight='bold')
     plt.xlabel(cowboe_settings['reaction coordinate unit'],fontsize=14,weight='bold')
+    plt.xlim(cowboe_settings['xlim'])
+    plt.ylim(cowboe_settings['ylim'])
+    plt.yticks(range(int(cowboe_settings['ylim'][0]),int(cowboe_settings['ylim'][1]+2.0),2))
+
     # # plt.title('Initial window guess')
     
     
     for exr in x[trough]:
-        plt.axvline(exr,ls='--',c='r')    
+        plt.axvline(exr,ls='-.',c='r')    
     for exr in x[crest]:
         plt.axvline(exr,ls='--',c='g')   
 
@@ -275,16 +289,16 @@ def cowboelammps(**kwargs):
         Calculates the V and K values for the conventional Umbrella sampling.
         V = 0.5 * K * (X - X0)**2
         K = 2*V/(X-X0)**2
-        
+    
         '''
-        Windows = windows.copy()
-        # startw = cowboe_settings["conv. min of last window"]
-        # endw = cowboe_settings["conv. min of 1st window"]
+        Windowsnew = windows.copy()
+        startw = cowboe_settings["conv. min of last window"]
+        endw = cowboe_settings["conv. min of 1st window"]
     
         
-        # Windows[0], Windows[-1]= startw, endw
+        Windowsnew[0], Windowsnew[-1]= startw, endw
         
-        
+       
         
         V_x = np.linspace(-0.5,0.5,100)
         t_V = [ 0.5*kgiven*(0-i)**2 for i in V_x]
@@ -306,7 +320,7 @@ def cowboelammps(**kwargs):
             v = [0.5 * kk * (width/2.0)**2 for kk,width in zip(k,wwidth)]
             return k,v
         
-        K, Vs = forceconstant(Windows)
+        K, Vs = forceconstant(Windowsnew)
         
         def windowsplot(k, L, R):
             V_x = np.linspace(L,R,100)
@@ -317,16 +331,22 @@ def cowboelammps(**kwargs):
             return M
         
         Mss = []
-        for k, L, Ri in zip(K, Windows[::-1][:-1], Windows[::-1][1:]):
+        for k, L, Ri in zip(K, Windowsnew[::-1][:-1], Windowsnew[::-1][1:]):
             Mss.append(windowsplot(k,L,Ri))
         
         
         plt.axhline(V, linestyle='--', c='r')    
-        plt.xticks(Mss, rotation=90)
-        plt.ylabel(r'$\Delta$ V')
-        plt.xlabel(cowboe_settings["reaction coordinate unit"])
-        plt.title('Potential from cowboe')
-        plt.savefig('native_window_potential_%.4f_%.4f.%s' % (A, B, cowboe_settings['fig extension']), bbox_inches = 'tight')
+        # plt.xticks(Mss, rotation=90)
+        plt.xticks(range(cowboe_settings['xlim'][0],cowboe_settings['xlim'][1]+2,2))
+        plt.yticks(np.linspace(0,1.0,6))
+        # plt.yticks(range(cowboe_settings['ylim'][0],cowboe_settings['ylim'][1]+2,2))
+
+        plt.ylabel(r'U (kcal/mol)',fontweight='bold')
+        plt.xlim(cowboe_settings['xlim'])
+        plt.ylim((0,V))
+        plt.xlabel(cowboe_settings["reaction coordinate unit"],fontweight='bold')
+        # plt.title('Potential from cowboe')
+        plt.savefig('%s/potentialwellcowboe_%.4f_%.4f.%s' % (location, A, B, cowboe_settings['fig extension']), bbox_inches = 'tight',dpi=300)
         plt.show()
         plt.close()
         
@@ -348,11 +368,11 @@ def cowboelammps(**kwargs):
         
         
         fig, (ax1,ax2) = plt.subplots(2, sharex=True, figsize=(10,5))
-        ax1.bar(np.arange(len(np.diff(Windows[::-1]))), np.diff(Windows[::-1]), color='r')
-        ax2.bar(np.arange(len(np.diff(Windows[::-1]))), K, color='g')
+        ax1.bar(np.arange(len(np.diff(Windowsnew[::-1]))), np.diff(Windowsnew[::-1]), color='r')
+        ax2.bar(np.arange(len(np.diff(Windowsnew[::-1]))), K, color='g')
         ax1.set(ylabel='Width')
         ax2.set(ylabel='K')
-        plt.xticks(np.arange(len(np.diff(Windows[::-1]))))
+        plt.xticks(np.arange(len(np.diff(Windowsnew[::-1]))))
         plt.xlabel('Window')
         plt.title('Windows/force constant - cowboe')
         plt.savefig('new_window_potential_%.4f_%.4f.%s' % (A, B, cowboe_settings['fig extension']),bbox_inches = 'tight')
@@ -361,7 +381,7 @@ def cowboelammps(**kwargs):
         
         np.savetxt('K-{}-{}.txt'.format(A,B), np.c_[range(len(K)), K])
         
-        return K, Windows, Mss
+        return K, Windowsnew, Mss
     
     def writeinputdic(pointname, server, A, B, V, windows):
     
@@ -653,10 +673,13 @@ def cowboelammps(**kwargs):
     # plt.xticks(windows, rotation=90)
     # plt.xlim((x[-1]-1, x[0]+1))
     plt.xlim(cowboe_settings['xlim'])
+    plt.ylim(cowboe_settings['ylim'])
+    plt.yticks(range(int(cowboe_settings['ylim'][0]),int(cowboe_settings['ylim'][1]+2.0),2))
+
     # plt.title('A = %.4f & B = %.4f - from cowboe' %(A,B))
     plt.ylabel(r'$\Delta$ PMF',fontsize=14,weight='bold')
     plt.xlabel(cowboe_settings['reaction coordinate unit'],fontsize=14,weight='bold')
-    plt.savefig('overgradient_%.4f_%.4f.%s' % (A, B, cowboe_settings['fig extension']), bbox_inches='tight', dpi=300)
+    plt.savefig('%s/windowdist_%.4f_%.4f.%s' % (location,A, B, cowboe_settings['fig extension']), bbox_inches='tight', dpi=300)
     plt.show()
     plt.close()
     
@@ -761,7 +784,7 @@ def cowboelammps(**kwargs):
     plt.show()
     plt.close()
     
-
+    print(windows)
     K, Windows, Mss = Kcalc(windows, A, B, V, kgiven)
     
     print('\n',pd.DataFrame(np.c_[np.flip(actualww), np.flip(abs(np.diff(windows))), np.flip(actualww - abs(np.diff(windows)))], columns=['Theoritical', 'Actual', 'diff']))
@@ -852,7 +875,7 @@ def cowboe(**kwargs):
         '''
         Calculates the V and K values for the conventional Umbrella sampling.
         V = 0.5 * K * (X - X0)**2
-        K = 2*V/(X-X0)**2
+        K = 2*V/((ww)/2)**2
         
         '''
         Windows = windows.copy()
@@ -862,7 +885,8 @@ def cowboe(**kwargs):
         
         Windows[0], Windows[-1]= startw, endw
         
-        
+        wtxt = np.array(Windows)
+        np.savetxt('wtxt.txt',wtxt)
         
         V_x = np.linspace(-0.5,0.5,100)
         t_V = [ 0.5*kgiven*(0-i)**2 for i in V_x]
@@ -1269,7 +1293,6 @@ def cowboe(**kwargs):
     plt.show()
     plt.close()
     
-
     K, Windows, Mss = Kcalc(windows, A, B, V, kgiven)
     
     print('\n',pd.DataFrame(np.c_[np.flip(actualww), np.flip(abs(np.diff(windows))), np.flip(actualww - abs(np.diff(windows)))], columns=['Theoritical', 'Actual', 'diff']))
@@ -1294,6 +1317,7 @@ def cowboe(**kwargs):
         sys.stdout = oldstdout
     sys.stdout = oldstdout
     
+    print(windows, Windows)
     
     print('\n',pd.DataFrame(np.c_[np.flip(actualww), np.flip(abs(np.diff(windows))), np.flip(actualww - abs(np.diff(windows)))], columns=['Theoritical', 'Actual', 'diff']))
     
@@ -1386,51 +1410,51 @@ def cowboe_wham(**kwargs):
     
     return None
 
-def pmfcompare(**kwargs):
-    '''
-    Plots two pmf curves for comparison.
+# def pmfcompare(**kwargs):
+#     '''
+#     Plots two pmf curves for comparison.
 
-    Parameters
-    ----------
-    pmf1 : str,
-        name of the curve 1 (PMF) file.
-    pmf2 : str,
-        name of the curve 2 (PMF) file.
-    name : str,
-        name to save the output with.
+#     Parameters
+#     ----------
+#     pmf1 : str,
+#         name of the curve 1 (PMF) file.
+#     pmf2 : str,
+#         name of the curve 2 (PMF) file.
+#     name : str,
+#         name to save the output with.
 
-    Returns
-    -------
-    None
+#     Returns
+#     -------
+#     None
     
-    '''
-    free1 = kwargs['pmf1']
-    free2 = kwargs['pmf2']
-    pdfname = kwargs['name']
+#     '''
+#     free1 = kwargs['pmf1']
+#     free2 = kwargs['pmf2']
+#     pdfname = kwargs['name']
     
-    c1 = Path(free1).name.split('.')[0]
-    c2 = Path(free2).name.split('.')[0]
+#     c1 = Path(free1).name.split('.')[0]
+#     c2 = Path(free2).name.split('.')[0]
     
     
-    free1, free2 = np.loadtxt(free1), np.loadtxt(free2)
-    f1, f2, e1, e2 = free1[:,0:2], free2[:,0:2], free1[:,2], free2[:,2]
-    if cowboe_settings['error bar'] : 
-        plt.errorbar(f1[::,0], f1[::,1],yerr=e1,lw=1.5,capsize=2,errorevery=cowboe_settings['error every'],elinewidth=1.5,label=c1)
-        plt.errorbar(f2[::,0], f2[::,1],yerr=e2,lw=1.5,capsize=2,errorevery=cowboe_settings['error every'],elinewidth=1.5,label=c2)
-    else:
-        plt.plot(f1[::,0], f1[::,1],lw=1.5,label=c1)
-        plt.plot(f2[::,0], f2[::,1],lw=1.5,label=c2)
-    # plt.title(r'%s-%s - $\xi$ vs PMF'%(c1,c2))
-    plt.xlabel(cowboe_settings["reaction coordinate unit"],fontsize=14,weight='bold')
-    plt.ylabel(cowboe_settings["PMF unit"],fontsize=14,weight='bold')
-    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-    plt.xticks(fontsize=14)
-    plt.yticks(fontsize=14)
-    plt.savefig('{}.{}'.format(pdfname, cowboe_settings['fig extension']), bbox_inches='tight', dpi=300)
-    plt.show()
-    plt.close()
+#     free1, free2 = np.loadtxt(free1), np.loadtxt(free2)
+#     f1, f2, e1, e2 = free1[:,0:2], free2[:,0:2], free1[:,2], free2[:,2]
+#     if cowboe_settings['error bar'] : 
+#         plt.errorbar(f1[::,0], f1[::,1],yerr=e1,lw=1.5,capsize=2,errorevery=cowboe_settings['error every'],elinewidth=1.5,label=c1)
+#         plt.errorbar(f2[::,0], f2[::,1],yerr=e2,lw=1.5,capsize=2,errorevery=cowboe_settings['error every'],elinewidth=1.5,label=c2)
+#     else:
+#         plt.plot(f1[::,0], f1[::,1],lw=1.5,label=c1)
+#         plt.plot(f2[::,0], f2[::,1],lw=1.5,label=c2)
+#     # plt.title(r'%s-%s - $\xi$ vs PMF'%(c1,c2))
+#     plt.xlabel(cowboe_settings["reaction coordinate unit"],fontsize=14,weight='bold')
+#     plt.ylabel(cowboe_settings["PMF unit"],fontsize=14,weight='bold')
+#     plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+#     plt.xticks(fontsize=14)
+#     plt.yticks(fontsize=14)
+#     plt.savefig('{}.{}'.format(pdfname, cowboe_settings['fig extension']), bbox_inches='tight', dpi=300)
+#     plt.show()
+#     plt.close()
     
-    return None
+#     return None
 
 def pmfdiff(**kwargs):
     '''
@@ -1493,7 +1517,7 @@ def pmfdiff(**kwargs):
     
     return None
 
-def multi_pmfcompare(**kwargs):
+def pmfcompare(**kwargs):
     '''
     Plots the error bars of the two curves
 
@@ -1519,6 +1543,10 @@ def multi_pmfcompare(**kwargs):
         
     linestyles : list
         list of matplotlib plot line styles to use for each curve
+    mfc : str
+        takes input for the marker face color
+    lloc : str
+        Legend location 'inside' or 'outside'
     Returns
     -------
     None
@@ -1533,6 +1561,8 @@ def multi_pmfcompare(**kwargs):
     linestyles = kwargs.get('linestyles',cowboe_settings['linestyles'])
     marks = marks[:len(frees)]
     colors = colors[:len(frees)]
+    facecol = kwargs.get('mfc','none')
+    lloc = kwargs.get('lloc','outside')
 
     # if linestyles == cowboe_settings['linestyles']:
     linestyles = list(np.resize(linestyles, len(frees)))
@@ -1552,19 +1582,19 @@ def multi_pmfcompare(**kwargs):
             plt.errorbar(f1[::,0], f1[::,1],yerr=e1, marker=m, c=color,\
                          markevery=cowboe_settings['mark every'], ls=linestyle, \
                              lw=1.5,capsize=2,errorevery=cowboe_settings['error every'],\
-                                 elinewidth=1.5,\
+                                 elinewidth=1.5,mfc=facecol,\
                                      ms=cowboe_settings['marker size'],\
                                      label=c1)
         else:
             plt.plot(f1[::,0], f1[::,1],lw=1.5, \
                      marker=m, c=color, ls=linestyle,\
-                         markevery=cowboe_settings['mark every'], \
+                         markevery=cowboe_settings['mark every'], mfc=facecol,\
                              ms=cowboe_settings['marker size'],\
                              label=c1)
                 
         ## plt.title(r'%s- $\xi$ vs PMF'%(pdfname))
-        plt.xlabel(cowboe_settings["reaction coordinate unit"],fontsize=14,weight='bold')
-        plt.ylabel(cowboe_settings["PMF unit"],fontsize=14,weight='bold')
+    plt.xlabel(cowboe_settings["reaction coordinate unit"],fontsize=14,weight='bold')
+    plt.ylabel(cowboe_settings["PMF unit"],fontsize=14,weight='bold')
     #     plt.xticks(cowboe_settings['xticks'], fontsize=14)
         
     # axis = plt.axis()
@@ -1573,14 +1603,107 @@ def multi_pmfcompare(**kwargs):
         plt.axhline(y=0.0,ls='--',c='r')
         
     plt.xlim(cowboe_settings['xlim'])
-    #plt.ylim(cowboe_settings['ylim'])
-    # plt.legend(loc = 'lower right') 
-    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.ylim(cowboe_settings['ylim'])
+    plt.yticks(range(int(cowboe_settings['ylim'][0]),int(cowboe_settings['ylim'][1]+2.0),2))
+
+    if lloc == 'inside':
+        plt.legend(loc = 'best') 
+    else:
+        plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     plt.savefig('{}.{}'.format(pdfname, cowboe_settings['fig extension']), bbox_inches='tight', dpi=300)
     plt.show()
     plt.close()
     
     return None
+
+# def multi_pmfcompare(**kwargs):
+#     '''
+#     Plots the error bars of the two curves
+
+#     Parameters
+#     ----------
+#     pmfs : list or tuple,
+#         names of the PMF files to be plotted.
+
+#     name : str,
+#         name to save the output with.
+    
+#     splice : array
+#         array for index value for each pmf curve to splice to
+    
+#     markzero : Bool
+#         Whether to mark y = 0 with a dashed line or not
+    
+#     markers : list 
+#         list of matplotlib markers to use for each curve
+    
+#     colors : list
+#         list of matplotlib plot colors to use for each curve
+        
+#     linestyles : list
+#         list of matplotlib plot line styles to use for each curve
+#     Returns
+#     -------
+#     None
+    
+#     '''
+#     frees = kwargs['pmfs']
+#     pdfname = kwargs['name']
+#     splices = kwargs['splices']
+    
+#     marks = kwargs.get('markers',cowboe_settings['markers'])
+#     colors = kwargs.get('colors',cowboe_settings['colors'])
+#     linestyles = kwargs.get('linestyles',cowboe_settings['linestyles'])
+#     marks = marks[:len(frees)]
+#     colors = colors[:len(frees)]
+
+#     # if linestyles == cowboe_settings['linestyles']:
+#     linestyles = list(np.resize(linestyles, len(frees)))
+#     linestyles =  linestyles[:len(frees)]   
+#     # else:
+#     #     linestyles = list(np.resize(linestyles, len(frees)))
+#     #     linestyles =  linestyles[:len(frees)]    
+        
+#     markzero = kwargs.get('markzero',False)
+    
+#     for free1, splice, m, color, linestyle  in zip(frees,splices, marks, colors, linestyles):
+#         c1 = Path(free1).name.split('.')[0]
+    
+#         free1 = np.loadtxt(free1)[splice:]
+#         f1, e1= free1[:,0:2], free1[:,2]
+#         if cowboe_settings['error bar'] : 
+#             plt.errorbar(f1[::,0], f1[::,1],yerr=e1, marker=m, c=color,\
+#                          markevery=cowboe_settings['mark every'], ls=linestyle, \
+#                              lw=1.5,capsize=2,errorevery=cowboe_settings['error every'],\
+#                                  elinewidth=1.5,\
+#                                      ms=cowboe_settings['marker size'],\
+#                                      label=c1)
+#         else:
+#             plt.plot(f1[::,0], f1[::,1],lw=1.5, \
+#                      marker=m, c=color, ls=linestyle,\
+#                          markevery=cowboe_settings['mark every'], \
+#                              ms=cowboe_settings['marker size'],\
+#                              label=c1)
+                
+#         ## plt.title(r'%s- $\xi$ vs PMF'%(pdfname))
+#     plt.xlabel(cowboe_settings["reaction coordinate unit"],fontsize=14,weight='bold')
+#     plt.ylabel(cowboe_settings["PMF unit"],fontsize=14,weight='bold')
+#     #     plt.xticks(cowboe_settings['xticks'], fontsize=14)
+        
+#     # axis = plt.axis()
+#     # plt.axis = 
+#     if markzero :
+#         plt.axhline(y=0.0,ls='--',c='r')
+        
+#     plt.xlim(cowboe_settings['xlim'])
+#     plt.ylim(cowboe_settings['ylim'])
+#     # plt.legend(loc = 'lower right') 
+#     plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+#     plt.savefig('{}.{}'.format(pdfname, cowboe_settings['fig extension']), bbox_inches='tight', dpi=300)
+#     plt.show()
+#     plt.close()
+    
+#     return None
 
 def cowboefit(**kwargs):
     '''
@@ -3328,7 +3451,9 @@ def cowboe3Dsurface(**kwargs):
     fig = plt.figure()
     ax = fig.gca(projection='3d')
     
-    tri = ax.plot_trisurf(x, y, z, linewidth=0.2, antialiased=False, cmap=cm.coolwarm, edgecolor='none')
+    # tri = ax.plot_trisurf(x, y, z, linewidth=0.2, antialiased=False, cmap=cm.coolwarm, edgecolor='none')
+    tri = ax.plot_trisurf(x, y, z, linewidth=0.2, antialiased=False, cmap=cm.plasma, edgecolor='none')
+
     fig.colorbar(tri)
     ax.set_zlim(min(z)-0.25, max(z)+0.25);
     
@@ -3561,7 +3686,8 @@ def cowboe_OVL (**kwargs):
             if w == jo:
                 OVL[w][jo]=1.0
                 continue
-
+            
+            if abs(w-jo) !=1 : continue
             d2 = np.loadtxt(os.path.join(os.sep,loc,l[jo]))[:,1]
 
 
@@ -3593,7 +3719,7 @@ def cowboe_OVL (**kwargs):
     plt.clim(0,1)
     #plt.xticks(range(wins), rotation='vertical')
     #plt.yticks(range(wins), rotation='horizontal')
-    plt.savefig(os.path.join(os.sep,loc,'OVL-{}.{}'.format(name,cowboe_settings['fig extension'])),bbox_inches='tight', dpi=300)
+    plt.savefig(os.path.join(os.sep,loc,'OVL-{}.{}'.format(name,'jpg')),bbox_inches='tight', dpi=300)
     plt.show()      
 
     return None     
@@ -3882,7 +4008,7 @@ def lammps_input(inputs):
                 
             if mail=='TRUE':
                 print('#SBATCH --mail-type=ALL')
-                print('#SBATCH --mail-user=vasudevn@mcmaster.ca')
+                print('#SBATCH --mail-user=vasudevnhpcjobs@gmail.com')
             
             
             print(('#SBATCH -J {}-win-{}').format(subloc.split('/')[-1],i))
@@ -4123,7 +4249,7 @@ def settings_update():
 if __name__ == '__main__':
     
     cowboe_settings = {
-    "PMF unit"                      : 'PMF (Kcal / mol)',
+    "PMF unit"                      : 'PMF (kcal / mol)',
     "reaction coordinate unit"      : r"$\xi$ - reaction coordinate ($\AA$)",     
     "polynomial fit order"          : 12,  
     "param B"                       : 2.0,         
@@ -4142,7 +4268,7 @@ if __name__ == '__main__':
     "error every"                   : 3,
     "error bar"                     : False,
     "mark every"                    : 3,
-    "fig extension"                 : 'pdf',
+    "fig extension"                 : 'jpg',
     "KS coefficent D"               : 1.36,
     "markers"                       : ['^','|','v','*','x','s','2','D','o','p'],
     "colors"                        : ['b','g','r','k','c','y','darkorange','darkviolet','saddlebrown','slategray'],
@@ -4150,7 +4276,7 @@ if __name__ == '__main__':
     "mark every"                    : 3,
     "marker size"                   : 10,
     "xlim"                          : (2,16),
-    "ylim"                          : (0,16)
+    "ylim"                          : (-0.5,16)
     }
     
     wham_settings = {
@@ -4167,7 +4293,7 @@ if __name__ == '__main__':
 else : 
 
     cowboe_settings = {
-    "PMF unit"                      : 'PMF (Kcal / mol)',
+    "PMF unit"                      : 'PMF (kcal / mol)',
     "reaction coordinate unit"      : r"$\xi$ - reaction coordinate ($\AA$)",     
     "polynomial fit order"          : 12,  
     "param B"                       : 2.0,         
@@ -4186,7 +4312,7 @@ else :
     "error every"                   : 3,
     "error bar"                     : False,
     "mark every"                    : 3,
-    "fig extension"                 : 'pdf',
+    "fig extension"                 : 'jpg',
     "KS coefficent D"               : 1.36,
     "markers"                       : ['^','|','v','*','x','s','2','D','o','p'],
     "colors"                        : ['b','g','r','k','c','y','darkorange','darkviolet','saddlebrown','slategray'],
@@ -4194,7 +4320,7 @@ else :
     "mark every"                    : 3,
     "marker size"                   : 10,
     "xlim"                          : (2,16),
-    "ylim"                          : (0,16)
+    "ylim"                          : (-0.5,16)
     }
     
     wham_settings = {
