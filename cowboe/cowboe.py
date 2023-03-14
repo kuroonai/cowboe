@@ -1733,7 +1733,22 @@ def cowboefit(**kwargs):
         None.
 
     '''
-
+    def clean_files(test_file, bench_file):
+        # Load data from files
+        test_data = np.loadtxt(test_file, dtype=np.float32, delimiter='\t', comments='#')
+        bench_data = np.loadtxt(bench_file, dtype=np.float32, delimiter='\t', comments='#')
+    
+        # Remove rows with NaN or Inf values in the second column
+        mask = np.isfinite(test_data[:, 1]) & np.isfinite(bench_data[:, 1])
+        test_data = test_data[mask]
+        bench_data = bench_data[mask]
+    
+        # Save cleaned data to new files
+        np.savetxt('clean_{}'.format(Path(test_file).name), test_data, fmt='%.6f\t%.6f\t%.6f\t%.6f\t%.6f', delimiter='\t')
+        np.savetxt('clean_{}'.format(Path(bench_file).name), bench_data, fmt='%.6f\t%.6f\t%.6f\t%.6f\t%.6f', delimiter='\t')
+        
+        return 'clean_{}'.format(Path(test_file).name), 'clean_{}'.format(Path(bench_file).name)
+    
     def removeinf_and_gradient(freefile,sp):
         '''
         Removes inf entries in the PMF file and calculates the gradient of the same.
@@ -2258,8 +2273,11 @@ def cowboefit(**kwargs):
     
     name = Path(testfile).name.split('.')[0]
     
-    benchfile = removeinf_and_gradient(benchfile,spl[0])
-    testfile = removeinf_and_gradient(testfile,spl[1])
+    # benchfile = removeinf_and_gradient(benchfile,spl[0])
+    # testfile = removeinf_and_gradient(testfile,spl[1])
+    
+    testfile, benchfile = clean_files(testfile, benchfile)
+    
     #pmfplot(benchfile, testfile, 'errorbar_pmf_{}'.format(name))
     #outp = pmf_vdist(benchfile, testfile, 'vdist_pmf_{}'.format(name))
     #pmf_errordist(benchfile, testfile, 'vdist_pmf_{}'.format(name))
