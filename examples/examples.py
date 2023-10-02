@@ -44,7 +44,9 @@ cowboe_settings.update({"param B" : 2.0})
 
 # to convert the rest pmf into array for further processing.
 '''The below function generates a pickle file called variable.pkl and it will be used for further steps'''
-pmftopoints(testpmf='test_pmf.txt')
+pmftopoints(location=os.path.join(loc,'testpmf'),\
+            testpmf='test_pmf.txt',\
+            order=12);
 
 # algorithm to get window distribution of the given parameters based on the test pmf data.
 '''
@@ -61,13 +63,19 @@ routine.
 
 And these and other values can be adjusted using dict update
 
-e.g. cowboe_settings.update({'conventional no of windows' : 24})
+e.g. cowboe_settings.update({"ylim" : (0,16)})
 '''
 
-cowboe(A=3.5, V = 0.8 , sc =8, name=3)
+cowboe(A=3.5000, \
+         B=2.0, \
+             V =0.8000 ,\
+                 sc =8,\
+                     name='3',\
+                         subtype='100mc',\
+                             location=loc+'/temppmf',\
+                                 equal_sampling=True);
+                                 
 
-# to update the wham_setting dictionary
-wham_settings.update({"tol" : 0.00015})
 
 # calculates PMF using wham for the given trajectories # must update list.txt which is the metadata file for the wham calculation.
 # more information on the tool is available here,
@@ -83,12 +91,35 @@ This file is same as the metadata file described in the wham documentation,
 http://membrane.urmc.rochester.edu/wordpress/?page_id=126
 
 '''
-cowboe_wham(name = '3.txt', location ='</cowboe/examples/3>', MCtrials = 0)
+# To update the wham_setting dictionary. This can be used to change the default values.
+wham_settings.update({"tol" : 0.00015})
 
-cowboe_pmfplot(pmf='1.txt', name='1_pmf', splice=0)
+cowboe_wham(name = 'benchmark.txt', location ='</cowboe/examples/benchmark>',\
+            MCtrials = 0, hist_min = 2.0, hist_max = 14.5, num_bins=100, tol=0.0001,\
+            temp=298, numpad=0, metadatafile='list.txt')
 
-# calculates the fitness of a test case w.r.t to the benchmark case.
-cowboefit(test='3.txt',bench='benchmark.txt')
+cowboe_wham(name = '3.txt', location ='</cowboe/examples/3>',\
+            MCtrials = 0, hist_min = 2.0, hist_max = 14.5, num_bins=100, tol=0.0001,\
+            temp=298, numpad=0, metadatafile='list.txt')
+
+cowboe_pmfplot(pmf='benchmark.txt', name='benchmark')
+cowboe_pmfplot(pmf='3.txt', name='3')
+         
+'''
+To plot two PMf curves and get their absolute difference.
+'''
+pmfdiff(pmf1='benchmark.txt', pmf2='3.txt', name='benchmark-3-diff')
+
+'''
+To compare multiple PMF curve by plotting them together
+'''
+
+pmfcompare(pmfs=['benchmark.txt','3.txt'], name='comparison_benchmark_3', splices=[8,10], lloc='outside', markzero=False)
+
+'''
+To calculate the fitness of a test case w.r.t to the benchmark case.
+'''
+cowboefit(test='3.txt',bench='benchmark.txt', frommin=False)
 
 '''
 We need three initial parameter combinations to run the NM algorithm
@@ -96,10 +127,6 @@ Here the three initial guess are 1,2,3..
 
 We can compare the pmf curves using the below functions
 '''
-
-pmfcompare(pmf1='1.txt', pmf2='3.txt', name='1-3-compare')
-pmfdiff(pmf1='1.txt', pmf2='2.txt', name='1-2-compare')
-multi_pmfcompare(pmfs=['1.txt', '2.txt', '3.txt'], name='multiple-compare', splices=[0,0,0])
 
 
 '''
@@ -232,14 +259,21 @@ cowboe3Dsurface(progressfile = 'progress.txt')
 The following functions are all used for modifying or testing the trajectory files and 
 other sampling related properties.
 '''
-cowboe_trajcut(percentage=50.0, location='</cowboe/examples/4>',\
-            name='4',listfile='list.txt',start=0)
-            
+cowboe_trajcut(percentage=50.0, location='</cowboe/examples/benchmark>',\
+            name='benchmark',listfile='list.txt',start=0)
+'''
+To do compute the Kolmogorov-Smirnov statistic on 2 samples.
+The null hypothesis is that the two individual samples were extracted from the same distribution
+and if the p-value is large or the KS statistics is small, then we cannot reject the hypothesis that the distributions of the two samples are the same.
+'''
+       
 cowboeKS(location='</cowboe/examples/benchmark>', \
          listfile='list.txt', percentage = 85)
-    
-cowboe_OVL(location='</cowboe/examples/benchmark>'\
-           , listfile='list.txt', name = 'benchmark', distplot=False)
+'''
+To calculate the coefficient of overlap (OVL) for different window's distribution
+'''
+cowboe_OVL(location='</cowboe/examples/benchmark>',\
+           listfile='list.txt', name = 'benchmark', distplot=False)
 '''
 On calling the below function, details on default setting and ways to modify them will be shown
 '''

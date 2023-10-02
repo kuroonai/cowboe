@@ -28,9 +28,9 @@ if "bdist_wheel" in sys.argv:
         )
 
 # Checking for suitable python version
-if sys.version_info[:2] < (3, 6):
+if sys.version_info[:2] < (3, 7):
     sys.stderr.write(
-        "cowboe requires Python 3.6 or later. "
+        "cowboe requires Python 3.7 or later. "
         "Python %d.%d is being used currently. Try creating a virtual environment.\n" % sys.version_info[:2]
     )
     sys.exit(1)
@@ -38,8 +38,9 @@ if sys.version_info[:2] < (3, 6):
 setup(
    name='cowboe',
    version=__version__,
-   description='Construction Of Windows Based On Energy',
+   description='Construction Of Windows Based On free Energy',
    license="GNU General Public License v3.0",
+   
    long_description=long_description,
    long_description_content_type="text/markdown",
    author='Naveen Vasudevan, Li Xi',
@@ -54,19 +55,16 @@ setup(
    "Intended Audience :: Developers",
    "Intended Audience :: Science/Research",
    "Programming Language :: Python",
-   "Programming Language :: Python :: 3",
-   "Programming Language :: Python :: 3.6",
    "Programming Language :: Python :: 3.7",
    "Programming Language :: Python :: 3.8",
    "Programming Language :: Python :: 3.9",
    "Topic :: Scientific/Engineering",
    "Topic :: Scientific/Engineering :: Chemistry",
    "Topic :: Scientific/Engineering :: Bio-Informatics",
-   "Topic :: Software Development :: Libraries :: Python Modules",
    "Operating System :: OS Independent",
    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)"
    ],
    install_requires=['matplotlib', 'numpy', 'seaborn', 'imageio', 'scipy', 'shapely', 'pandas'],
-   python_requires='>=3.6'
+   python_requires='>=3.7'
 )
 
