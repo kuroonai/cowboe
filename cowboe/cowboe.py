@@ -2,40 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-Module for optimization and selection of parameters for umbrella sampling
-
-################################################
-
-COWBOE - Construction Of Windows Based On free Energy
-
-################################################
-
-Default settings for the module are as follow
-
-"PMF unit"                    :        r'PMF - Kcal / (mol $\cdot~\AA^2$)'
-"reaction coordinate unit"    :        r'$\AA$'
-"polynomial fit order"        :        12 
-"param B"                     :        2.0 
-"Number of datapoints"        :        100000
-"conventional force constant" :        7
-"conventional window width"   :        0.5
-"conventional no of windows"  :        24
-"conv. min of 1st window"     :        2.5
-"conv. min of last window"    :        14.5
-"fill colour"                 :        'r'
-"NM_alpha"                    :        1
-"NM_gamma"                    :        2
-"NM_beta"                     :        0.5
-"NM_delta"                    :        0.5
-"error every"                 :        3
-"mark every"                  :        3
-
-To update any settings, use dict.update()
-        e.g. cowboe_settings.update({"param B" : 2.0001})
+COWBOE - Construction Of Windows Based On free Energy. Package for optimization and selection of parameters for umbrella sampling
 
 project website: https://github.com/kuroonai/cowboe
-
-Created on Mon Jan 20 15:19:02 2020
 
 @authors:
 Naveen Kumar Vasudevan, Li Xi
