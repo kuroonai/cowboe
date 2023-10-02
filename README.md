@@ -19,6 +19,7 @@ COWBOE is a python 3 tool for parameter selection in Umbrella Sampling which is 
 It is best to install cowboe in a new environment
 
 **Using venv**
+
 For Linux/macOS,
 ```sh
 python3 -m venv /path/to/new/virtual/environment
@@ -31,9 +32,10 @@ c:\> <venv>\Scripts\activate.bat
 ```
 **Using conda**
 ```sh
-conda create -n cowboe python=3.7
+conda create -n cowboe python=3.9
 conda activate cowboe
 ```
+
 ### Installing pip ###
 pip is already installed if you are using Python 3 >=3.4 downloaded from python.org or if you are working in a Virtual Environment created by virtualenv or venv. Just make sure to upgrade pip using,
 ```sh
