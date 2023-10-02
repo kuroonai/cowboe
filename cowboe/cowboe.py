@@ -38,7 +38,6 @@ project website: https://github.com/kuroonai/cowboe
 Created on Mon Jan 20 15:19:02 2020
 
 @authors:Naveen Kumar Vasudevan, 
-        400107764,
         Doctoral Student, 
         The Xi Research Group, 
         Department of Chemical Engineering,
@@ -50,7 +49,7 @@ Created on Mon Jan 20 15:19:02 2020
         https://naveenovan.wixsite.com/kuroonai
         
         Dr. Li Xi,
-        Assistant Professor
+        Associate Professor
         Department of Chemical Engineering,
         McMaster University, 
         Hamilton, 
@@ -62,7 +61,7 @@ Created on Mon Jan 20 15:19:02 2020
 """
 __all__ = ['pmftopoints','cowboe', 'cowboefit', 'settings_update','cowboeKS', 'cowboeRNM', 'cowboeNM',\
            'progressfile', 'NMprogress', 'cowboe3Dsurface','cowboe_wham', 'pmfcompare',\
-           'cowboe_settings', 'wham_settings', 'cowboe_trajcut', 'cowboe_OVL', 'cowboe_pmfplot', 'pmfdiff'] #'multi_pmfcompare'
+           'cowboe_settings', 'wham_settings', 'cowboe_trajcut', 'cowboe_OVL', 'cowboe_pmfplot', 'pmfdiff','settings_update']
 
 import os
 import sys
@@ -100,24 +99,22 @@ matplotlib.rc('font', **font)
 
 def pmftopoints(**kwargs):
     """
-    Takes the test pmf file as input and generates gradient and initial guess
-    for windows
+    Takes the test pmf file as input and generates gradient and initial guess for windows
 
     Parameters
     ----------
-    location : string, mandatory
+    location : string
             Location to save the pickled varible file created from the test file.
             
-    testpmf : string, mandatory
-            Name of the test pmf file
+    testpmf : string
+            Name of the test pmf file.
     
     order : int
-            Order for polynomial fit
+            Order for polynomial fit.
         
     Returns
     -------
-    None.
-
+    None
     """
     oldpath = os.getcwd()
     
@@ -256,37 +253,37 @@ def cowboe(**kwargs):
 
     Parameters
     ----------
-    A = float, mandatory
+    A = float
         Optimization parameter 'A' for NM algorithm and parameter 1 of cowboe.
     
     B = float
         parameter 'B' for the cowboe equation
         
-    V = float, mandatory
+    V = float
         Optimization parameter for NM algorithm which controls energy 
         barrier.
     
-    sc = int, mandatory
+    sc = int
         Sampling considered for each windows in conventional method
         in nano seconds e.g. 8 ns
         
-    name = str, mandatory
+    name = str
         Name of the point being evaluated
         
-    subtype = str, mandatory
+    subtype = str
         Name of the sub type of the system
         
-    location = string, mandatory
+    location = string
             Location of the pickled variable file created from the test file in pmftopoints().
         
     Returns
     -------
-    None.
-
+    None
     """
     def Kcalc(windows, A, B, V, kgiven):
         """
         Calculates the V and K values for the conventional Umbrella sampling.
+
         V = 0.5 * K * (X - X0)**2
         K = 2*V/(X-X0)**2
     
@@ -473,9 +470,7 @@ def cowboe(**kwargs):
         #     'subtype'       :'%s',\n\
         #     'justsh'        :'nd'\n\
         #             }"%(pointname,server,A,B,V,len(windows)-1,samplingconsidered,\
-        #           A,B,V,sf,pointname,pointname,subtype,server,tc,pointname,subtype))
-
-            
+        #           A,B,V,sf,pointname,pointname,subtype,server,tc,pointname,subtype))    
 
     iniloc = os.getcwd()
     
@@ -897,8 +892,7 @@ def cowboe(**kwargs):
 
 def cowboe_wham(**kwargs):
     """
-    WHAM wrapper for PMF generation using trajectory files. 
-    Must have wham installed in system path
+    WHAM wrapper for PMF generation using trajectory files and user must have wham installed in system path
     
     Grossfield, Alan, “WHAM: the weighted histogram analysis method”, 
     version 2.0.10, http://membrane.urmc.rochester.edu/wordpress/?page_id=126
@@ -929,8 +923,7 @@ def cowboe_wham(**kwargs):
 
     Returns
     -------
-    None.
-
+    None
     """
     currentdir = os.getcwd()
     
@@ -985,7 +978,6 @@ def pmfdiff(**kwargs):
     Returns
     -------
     None
-    
     """
     free1 = kwargs['pmf1']
     free2 = kwargs['pmf2']
@@ -1063,7 +1055,6 @@ def pmfcompare(**kwargs):
     Returns
     -------
     None
-    
     """
     frees = kwargs['pmfs']
     pdfname = kwargs['name']
@@ -1131,15 +1122,15 @@ def pmfcompare(**kwargs):
 
 
 def cowboefit(**kwargs):
-    
     """
     Finds the fitness or area difference between the test and benchmark pmf curves
+
     Parameters
     ----------
-    test : str, mandatory
+    test : str
         name of the pmf curve being tested ( point name used in pmftopoints() ).
     
-    bench : str, mandatory
+    bench : str
         name of the benchmarck pmf curve
         
     frommin : bool
@@ -1150,7 +1141,6 @@ def cowboefit(**kwargs):
     
     outdict  : dict
         dictionary  with all the calculated deviation information.
-
     """
     def clean_files(test_file, bench_file, fromzero):
         # Load data from files
@@ -1279,79 +1269,76 @@ def cowboefit(**kwargs):
     
     
 def cowboeNM(**kwargs) :
-    
     """
     Nelder-Mead optimization algorithm for the cowboe module.
 
     Parameters
     ----------
-    A = array, mandatory
+    A = array
         A values of the 3 initial points for the 2 parameter optimization.
         
-    V = array, mandatory
+    V = array
         V or energy barrier values of the 3 initial points for 
         the 2 parameter optimization.
     
-    fit = array, mandatory
+    fit = array
         fitness or the area difference value between the benchmark
         and the test case.
         
     Returns
     -------
     conv = dict.
-            dictionary with possible moves for the current simplex
-    
-    #################################################################
-    
-    Pseudocode of the Simplex Nelder-Mead Optimization
-    
-    Initialize the simplex with  n-1 random starting parameter value combinations e.g. [A, V], 
-    where n is the number of parameters being optimized.
-    
-    Restricted Nelder-Mead algorithm:
-    
-    while loop not done
-    
-        calculate centroid
-        calculate reflected
-        
-        if reflected is better than best solution then
-            calculate expanded
-            replace worst solution with better of reflected and expanded
-            
-        else if reflected is worse than all but worst then
-            calculate outward contracted 
-            
-            if outward contracted is better than reflected
-                replace worst solution with outward contracted
-            end if 
-            
-            else
-                shrink the search area
-            
-        else if reflected is worse than all 
-            calculate inward contracted
-            
-            if inward contracted is better than worst
-                replace worst solution with inward contracted
-            end if
-            
-            else
-                shrink the search area
-    
-        else
-            replace worst solution with reflected
-            
-        end if
-        
-        if the solution is within tolerance, exit loop
-        
-    end loop
-    
-    return best solution found
-
+        dictionary with possible moves for the current simplex
     """
     
+    # #################################################################
+    
+    # Pseudocode of the Simplex Nelder-Mead Optimization
+    
+    # Initialize the simplex with  n-1 random starting parameter value combinations e.g. [A, V], 
+    # where n is the number of parameters being optimized.
+    
+    # Restricted Nelder-Mead algorithm:
+    
+    # while loop not done
+    
+    #     calculate centroid
+    #     calculate reflected
+        
+    #     if reflected is better than best solution then
+    #         calculate expanded
+    #         replace worst solution with better of reflected and expanded
+            
+    #     else if reflected is worse than all but worst then
+    #         calculate outward contracted 
+            
+    #         if outward contracted is better than reflected
+    #             replace worst solution with outward contracted
+    #         end if 
+            
+    #         else
+    #             shrink the search area
+            
+    #     else if reflected is worse than all 
+    #         calculate inward contracted
+            
+    #         if inward contracted is better than worst
+    #             replace worst solution with inward contracted
+    #         end if
+            
+    #         else
+    #             shrink the search area
+    
+    #     else
+    #         replace worst solution with reflected
+            
+    #     end if
+        
+    #     if the solution is within tolerance, exit loop
+        
+    # end loop
+    
+    # return best solution found 
     
     A = kwargs['A']
     V = kwargs['V']
@@ -1689,18 +1676,18 @@ def cowboeNM(**kwargs) :
 
 def cowboeRNM(**kwargs) :
     """
-    (Restricted) Nelder-Mead optimization algorithm for the cowboe module  .
+    (Restricted) Nelder-Mead optimization algorithm for the cowboe module .
 
     Parameters
     ----------
-    A = array, mandatory
+    A = array
         A values of the 3 initial points for the 2 parameter optimization.
         
-    V = array, mandatory
+    V = array
         V or energy barrier values of the 3 initial points for 
         the 2 parameter optimization.
     
-    fit = array, mandatory
+    fit = array
         fitness or the area difference value between the benchmark
         and the test case.
         
@@ -1709,53 +1696,54 @@ def cowboeRNM(**kwargs) :
     conv = dict.
             dictionary with possible moves for the current simplex
             
-    
-    Pseudocode of the Simplex Nelder-Mead Optimization
-    
-    Initialize the simplex with  n-1 random starting parameter value combinations e.g. [A, V], 
-    where n is the number of parameters being optimized.
-    
-    Restricted Nelder-Mead algorithm:
-    
-    while loop not done
-    
-        calculate centroid
-        calculate reflected
-        
-        if reflected is better than best solution then
-            replace worst solution with reflected
-            
-        else if reflected is worse than all but worst then
-            calculate outward contracted 
-            
-            if outward contracted is better than reflected
-                replace worst solution with outward contracted
-            end if 
-            
-            else
-                shrink the search area
-            
-        else if reflected is worse than all 
-            calculate inward contracted
-            
-            if inward contracted is better than worst
-                replace worst solution with inward contracted
-            end if
-            
-            else
-                shrink the search area
-    
-        else
-            replace worst solution with reflected
-            
-        end if
-        
-        if the solution is within tolerance, exit loop
-        
-    end loop
-    
-    return best solution found
     """
+    
+    # Pseudocode of the Simplex Nelder-Mead Optimization
+    
+    # Initialize the simplex with  n-1 random starting parameter value combinations e.g. [A, V], 
+    # where n is the number of parameters being optimized.
+    
+    # Restricted Nelder-Mead algorithm:
+    
+    # while loop not done
+    
+    #     calculate centroid
+    #     calculate reflected
+        
+    #     if reflected is better than best solution then
+    #         replace worst solution with reflected
+            
+    #     else if reflected is worse than all but worst then
+    #         calculate outward contracted 
+            
+    #         if outward contracted is better than reflected
+    #             replace worst solution with outward contracted
+    #         end if 
+            
+    #         else
+    #             shrink the search area
+            
+    #     else if reflected is worse than all 
+    #         calculate inward contracted
+            
+    #         if inward contracted is better than worst
+    #             replace worst solution with inward contracted
+    #         end if
+            
+    #         else
+    #             shrink the search area
+    
+    #     else
+    #         replace worst solution with reflected
+            
+    #     end if
+        
+    #     if the solution is within tolerance, exit loop
+        
+    # end loop
+    
+    # return best solution found
+    
     
     
     A = kwargs['A']
@@ -2093,21 +2081,18 @@ def cowboeRNM(**kwargs) :
 
 def NMprogress(**kwargs):
     """
-    provides an update on the progress of the algorithm by generating gif for steps
-    and summarizies the function values in term of figures and convergence.
+    provides an update on the progress of the algorithm by generating gif for steps and summarizies the function values in term of figures and convergence.
 
     Parameters
     ----------
-    progessfile : str, mandatory
+    progessfile : str
                 Name of the pogress file which hosts the parameter values in
                 3 columns A, V, fit() in groups of 3 (three vertices of the simplex
                 at any given step)
-        
 
     Returns
     -------
-    None.
-
+    None
     """
 
 
@@ -2219,7 +2204,7 @@ def NMprogress(**kwargs):
     
         Parameters
         ----------
-        FPS : int, mandatory
+        FPS : int
             frames per second for the gif file to be generated.
     
         Returns
@@ -2415,7 +2400,7 @@ def cowboe3Dsurface(**kwargs):
 
     Parameters
     ----------
-    progessfile : str, mandatory
+    progessfile : str
                 Name of the pogress file which hosts the parameter values in
                 3 columns A, V, fit() in groups of 3 (three vertices of the simplex
                 at any given step)
@@ -2435,8 +2420,7 @@ def cowboe3Dsurface(**kwargs):
 
     Returns
     -------
-    None.
-
+    None
     """
 
 
@@ -2484,8 +2468,7 @@ def progressfile(**kwargs):
 
     Returns
     -------
-    
-
+    None
     """
     points=kwargs['points']
     with open('progress.txt','w') as progfile:
@@ -2499,11 +2482,7 @@ def progressfile(**kwargs):
 
 def cowboeKS(**kwargs):
     """
-    Computes the Kolmogorov-Smirnov statistic on 2 samples.
-    The null hypothesis is that
-    the two individual samples were extracted from the same distribution
-    and if the p-value is large or the KS statistics is small, then we 
-    cannot reject the hypothesis that the distributions of the two samples are the same.
+    Computes the Kolmogorov-Smirnov statistic on 2 samples. The null hypothesis is that the two individual samples were extracted from the same distribution and if the p-value is large or the KS statistics is small, then we cannot reject the hypothesis that the distributions of the two samples are the same.
 
     Parameters
     ----------
@@ -2528,8 +2507,7 @@ def cowboeKS(**kwargs):
 
     Returns
     -------
-    None.
-
+    None
     """
     def distribution(w, data1, data2, loc):
     
@@ -2593,37 +2571,32 @@ def cowboeKS(**kwargs):
 
 def cowboe_OVL (**kwargs):
     """
-    Calculates the coefficient of overlap (OVL) for different window's
-    distribution
+    Calculates the coefficient of overlap (OVL) for different window's distribution
 
     Parameters
     ----------
-    location : str,
+    location : str
     
         location of all the trajectory files for a given point.
     
-    listfile : str,
+    listfile : str
     
         Name of the file containing the list of all the trajectory files
         in the ascending order of windows. Can be same as the metadata file
         used for wham calculation or just a list of each window's trajectory
         file's names.
     
-    name    : str,
+    name    : str
         
         Name for the Overlap calculation (generally name of the point).
     
-    distplot : bool,
+    distplot : bool
         
         switches the distribution plot with overlap on or off
-        
-        
 
     Returns
     -------
     None
-        
-
     """
     
     def overlap(hist1,hist2,i,j):
@@ -2733,37 +2706,35 @@ def cowboe_OVL (**kwargs):
 
 def cowboe_trajcut(**kwargs):
     """
-    Slices the trajectories and creates new trajectory files with given percentage
-    of the total sampling.
+    Slices the trajectories and creates new trajectory files with given percentage of the total sampling.
 
     Parameters
     ----------
     
-    start   : int,
+    start   : int
         index value of the starting point from where 
         the percentage of the data will be extracted. to start from the
         beginnning just provide "0" (without the quotes).
     
-    percentage : float,
+    percentage : float
         Percentage of the sampling (points) to use from total sampling.
     
-    location : str,
+    location : str
         location of all the trajectory files for a given point.
     
-    listfile : str,
+    listfile : str
 
         Name of the file containing the list of all the trajectory files
         in the ascending order of windows. Can be same as the metadata file
         used for wham calculation or just a list of each window's trajectory
         file's names (with extension).
     
-    name :  str,
+    name :  str
         name of the point.
 
     Returns
     -------
-    None.
-
+    None
     """
     
     per = kwargs['percentage']
@@ -2804,7 +2775,6 @@ def cowboe_pmfplot(**kwargs):
     Returns
     -------
     None
-    
     """
     
     free1  = kwargs['pmf']
@@ -2837,8 +2807,7 @@ def settings_update():
 
     Returns
     -------
-    None.
-
+    None
     """
 
     print(f"\nTo make temporary runtime updates to variables cowboe_settings and wham_settings use,\n\
@@ -2849,92 +2818,57 @@ def settings_update():
 
     return None
 
+common_settings = {
+    "PMF unit": 'PMF (kcal / mol)',
+    "reaction coordinate unit": r"$\xi$ - reaction coordinate ($\AA$)",
+    "polynomial fit order": 12,
+    "param B": 2.0,
+    "Number of datapoints": 10**5,
+    "conventional force constant": 7,
+    "conventional window width": 0.5,
+    "conventional no of windows": 24,
+    "equal_sampling": True,
+    "conv. min of 1st window": 2.5,
+    "conv. min of last window": 14.5,
+    "fill colour": 'r',
+    "NM_alpha": 1,
+    "NM_gamma": 2,
+    "NM_beta": 0.5,
+    "NM_delta": 0.5,
+    "error every": 3,
+    "error bar": False,
+    "fig extension": 'jpg',
+    "KS coefficent D": 1.36,
+    "markers": ['^', '|', 'v', '*', 'x', 's', '2', 'D', 'o', 'p'],
+    "colors": ['b', 'g', 'r', 'k', 'c', 'y', 'darkorange', 'darkviolet', 'saddlebrown', 'slategray'],
+    "linestyles": ['-', '--', '-.', ':'],
+    "mark every": 3,
+    "marker size": 10,
+    "xlim": (2, 16),
+    "ylim": (-0.5, 16)
+}
+
 if __name__ == '__main__':
-    
-    cowboe_settings = {
-    "PMF unit"                      : 'PMF (kcal / mol)',
-    "reaction coordinate unit"      : r"$\xi$ - reaction coordinate ($\AA$)",     
-    "polynomial fit order"          : 12,  
-    "param B"                       : 2.0,         
-    "Number of datapoints"          : 10**5,        
-    "conventional force constant"   : 7,            
-    "conventional window width"     : 0.5,
-    "conventional no of windows"    : 24,
-    "equal_sampling"                : True,
-    "conv. min of 1st window"       : 2.5,
-    "conv. min of last window"      : 14.5,
-    "fill colour"                   : 'r',
-    "NM_alpha"                      : 1,
-    "NM_gamma"                      : 2,
-    "NM_beta"                       : 0.5,
-    "NM_delta"                      : 0.5,
-    "error every"                   : 3,
-    "error bar"                     : False,
-    "mark every"                    : 3,
-    "fig extension"                 : 'jpg',
-    "KS coefficent D"               : 1.36,
-    "markers"                       : ['^','|','v','*','x','s','2','D','o','p'],
-    "colors"                        : ['b','g','r','k','c','y','darkorange','darkviolet','saddlebrown','slategray'],
-    "linestyles"                    : ['-','--','-.',':'],
-    "mark every"                    : 3,
-    "marker size"                   : 10,
-    "xlim"                          : (2,16),
-    "ylim"                          : (-0.5,16)
-    }
-    
+    cowboe_settings = dict(common_settings)
     wham_settings = {
-    "metadatafile"        : 'list.txt',
-    "hist_min"            : 2.0,
-    "hist_max"            : 14.5,
-    "num_bins"            : 100,
-    "tol"                 : 0.0001,
-    "temp"                : 300.0,
-    "numpad"              : 0,
-    "randSeed"            : random.randint(9999,10000000)
+        "metadatafile": 'list.txt',
+        "hist_min": 2.0,
+        "hist_max": 14.5,
+        "num_bins": 100,
+        "tol": 0.0001,
+        "temp": 300.0,
+        "numpad": 0,
+        "randSeed": random.randint(9999, 10000000)
     }
-       
-else : 
-
-    cowboe_settings = {
-    "PMF unit"                      : 'PMF (kcal / mol)',
-    "reaction coordinate unit"      : r"$\xi$ - reaction coordinate ($\AA$)",     
-    "polynomial fit order"          : 12,  
-    "param B"                       : 2.0,         
-    "Number of datapoints"          : 10**5,        
-    "conventional force constant"   : 7,            
-    "conventional window width"     : 0.5,
-    "conventional no of windows"    : 24,
-    "equal_sampling"                : True,
-    "conv. min of 1st window"       : 2.5,
-    "conv. min of last window"      : 14.5,
-    "fill colour"                   : 'r',
-    "NM_alpha"                      : 1,
-    "NM_gamma"                      : 2,
-    "NM_beta"                       : 0.5,
-    "NM_delta"                      : 0.5,
-    "error every"                   : 3,
-    "error bar"                     : False,
-    "mark every"                    : 3,
-    "fig extension"                 : 'jpg',
-    "KS coefficent D"               : 1.36,
-    "markers"                       : ['^','|','v','*','x','s','2','D','o','p'],
-    "colors"                        : ['b','g','r','k','c','y','darkorange','darkviolet','saddlebrown','slategray'],
-    "linestyles"                    : ['-','--','-.',':'],
-    "mark every"                    : 3,
-    "marker size"                   : 10,
-    "xlim"                          : (2,16),
-    "ylim"                          : (-0.5,16)
-    }
-    
+else:
+    cowboe_settings = dict(common_settings)
     wham_settings = {
-    "metadatafile"        : 'list.txt',
-    "hist_min"            : 2.0, 
-    "hist_max"            : 14.5,
-    "num_bins"            : 100,
-    "tol"                 : 0.0001,
-    "temp"                : 300.0,
-    "numpad"              : 0,
-    "randSeed"            : random.randint(9999,10000000)
+        "metadatafile": 'list.txt',
+        "hist_min": 2.0,
+        "hist_max": 14.5,
+        "num_bins": 100,
+        "tol": 0.0001,
+        "temp": 300.0,
+        "numpad": 0,
+        "randSeed": random.randint(9999, 10000000)
     }
-
-    
