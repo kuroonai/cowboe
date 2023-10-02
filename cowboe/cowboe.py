@@ -37,27 +37,13 @@ project website: https://github.com/kuroonai/cowboe
 
 Created on Mon Jan 20 15:19:02 2020
 
-@authors:Naveen Kumar Vasudevan, 
-        Doctoral Student, 
-        The Xi Research Group, 
-        Department of Chemical Engineering,
-        McMaster University, 
-        Hamilton, 
-        Canada.
-        
-        naveenovan@gmail.com
-        https://naveenovan.wixsite.com/kuroonai
-        
-        Dr. Li Xi,
-        Associate Professor
-        Department of Chemical Engineering,
-        McMaster University, 
-        Hamilton, 
-        Canada.
-        
-        xili@mcmaster.ca
-        http://xiresearch.org/        
-
+@authors:
+Naveen Kumar Vasudevan, Li Xi
+Department of Chemical Engineering,
+McMaster University, 
+Hamilton, 
+Canada.
+naveenovan@gmail.com
 """
 __all__ = ['pmftopoints','cowboe', 'cowboefit', 'settings_update','cowboeKS', 'cowboeRNM', 'cowboeNM',\
            'progressfile', 'NMprogress', 'cowboe3Dsurface','cowboe_wham', 'pmfcompare',\
