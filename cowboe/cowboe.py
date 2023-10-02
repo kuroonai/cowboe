@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-COWBOE - Construction Of Windows Based On free Energy. Package for optimization and selection of parameters for umbrella sampling
+COWBOE - Construction Of Windows Based On free Energy. Package for optimization and selection of parameters for umbrella sampling.
 
 project website: https://github.com/kuroonai/cowboe
 
