@@ -99,7 +99,7 @@ matplotlib.rc('font', **font)
 
 
 def pmftopoints(**kwargs):
-    '''
+    """
     Takes the test pmf file as input and generates gradient and initial guess
     for windows
 
@@ -118,7 +118,7 @@ def pmftopoints(**kwargs):
     -------
     None.
 
-    '''
+    """
     oldpath = os.getcwd()
     
     freeenergyfile = kwargs['testpmf']
@@ -251,7 +251,7 @@ def pmftopoints(**kwargs):
 
 
 def cowboe(**kwargs):
-    '''
+    """
     cowboe algorithm for iteration and window selection
 
     Parameters
@@ -283,14 +283,14 @@ def cowboe(**kwargs):
     -------
     None.
 
-    '''
+    """
     def Kcalc(windows, A, B, V, kgiven):
-        '''
+        """
         Calculates the V and K values for the conventional Umbrella sampling.
         V = 0.5 * K * (X - X0)**2
         K = 2*V/(X-X0)**2
     
-        '''
+        """
         Windowsnew = windows.copy()
         startw = cowboe_settings["conv. min of last window"]
         endw = cowboe_settings["conv. min of 1st window"]
@@ -896,7 +896,7 @@ def cowboe(**kwargs):
     return None
 
 def cowboe_wham(**kwargs):
-    '''
+    """
     WHAM wrapper for PMF generation using trajectory files. 
     Must have wham installed in system path
     
@@ -931,7 +931,7 @@ def cowboe_wham(**kwargs):
     -------
     None.
 
-    '''
+    """
     currentdir = os.getcwd()
     
     freefile    = kwargs.get('name', 'cowboe_pmf_output.txt')
@@ -970,7 +970,7 @@ def cowboe_wham(**kwargs):
 
 
 def pmfdiff(**kwargs):
-    '''
+    """
     Plots two pmf curves and the abs difference between them.
 
     Parameters
@@ -986,7 +986,7 @@ def pmfdiff(**kwargs):
     -------
     None
     
-    '''
+    """
     free1 = kwargs['pmf1']
     free2 = kwargs['pmf2']
     pdfname = kwargs['name']
@@ -1031,7 +1031,7 @@ def pmfdiff(**kwargs):
     return None
 
 def pmfcompare(**kwargs):
-    '''
+    """
     Plots the error bars of the two curves
 
     Parameters
@@ -1064,7 +1064,7 @@ def pmfcompare(**kwargs):
     -------
     None
     
-    '''
+    """
     frees = kwargs['pmfs']
     pdfname = kwargs['name']
     splices = kwargs['splices']
@@ -1132,7 +1132,7 @@ def pmfcompare(**kwargs):
 
 def cowboefit(**kwargs):
     
-    '''
+    """
     Finds the fitness or area difference between the test and benchmark pmf curves
     Parameters
     ----------
@@ -1151,7 +1151,7 @@ def cowboefit(**kwargs):
     outdict  : dict
         dictionary  with all the calculated deviation information.
 
-    '''
+    """
     def clean_files(test_file, bench_file, fromzero):
         # Load data from files
         test_data = np.loadtxt(test_file, dtype=np.float32, delimiter='\t', comments='#')
@@ -1280,7 +1280,7 @@ def cowboefit(**kwargs):
     
 def cowboeNM(**kwargs) :
     
-    '''
+    """
     Nelder-Mead optimization algorithm for the cowboe module.
 
     Parameters
@@ -1350,7 +1350,7 @@ def cowboeNM(**kwargs) :
     
     return best solution found
 
-    '''
+    """
     
     
     A = kwargs['A']
@@ -1688,7 +1688,7 @@ def cowboeNM(**kwargs) :
     return conv
 
 def cowboeRNM(**kwargs) :
-    '''
+    """
     (Restricted) Nelder-Mead optimization algorithm for the cowboe module  .
 
     Parameters
@@ -1755,7 +1755,7 @@ def cowboeRNM(**kwargs) :
     end loop
     
     return best solution found
-    '''
+    """
     
     
     A = kwargs['A']
@@ -2092,7 +2092,7 @@ def cowboeRNM(**kwargs) :
     return conv
 
 def NMprogress(**kwargs):
-    '''
+    """
     provides an update on the progress of the algorithm by generating gif for steps
     and summarizies the function values in term of figures and convergence.
 
@@ -2108,7 +2108,7 @@ def NMprogress(**kwargs):
     -------
     None.
 
-    '''
+    """
 
 
     fi = mticker.ScalarFormatter(useOffset=False, useMathText=True)
@@ -2214,7 +2214,7 @@ def NMprogress(**kwargs):
         return a, stopcheck1
     
     def cowboegif(**kwargs):
-        '''
+        """
         Makes gif file with snapshots of the different steps the NM algorithm takes.
     
         Parameters
@@ -2226,7 +2226,7 @@ def NMprogress(**kwargs):
         -------
         None.
     
-        '''
+        """
        
         FPS = kwargs['FPS']
         
@@ -2248,7 +2248,7 @@ def NMprogress(**kwargs):
         return None
 
     def cowboestop(**kwargs):
-        '''
+        """
         Provides the stoping criteria check based on this formula,
         
         stopvalue > sqrt( (1/3.0) * ((f1 - favg)**2 + (f1 - favg)**2 + (f1 - favg)**2 ))
@@ -2264,7 +2264,7 @@ def NMprogress(**kwargs):
         stopcheck : float
             Value evaluated from the stop criteria formula  (RMSD) provided.
     
-        '''  
+        """  
         F = kwargs['fit']
         
         # return np.sqrt( (1/3.0) * ((F[0] - np.mean(F))**2 \
@@ -2409,7 +2409,7 @@ def NMprogress(**kwargs):
     return None
 
 def cowboe3Dsurface(**kwargs):
-    '''
+    """
     Constructs a 3D surface plot based on the evaluvated unique parameter combinations
     and saves it in mp4 format. Need to have ffmpeg installed in path to use this function.
 
@@ -2437,7 +2437,7 @@ def cowboe3Dsurface(**kwargs):
     -------
     None.
 
-    '''
+    """
 
 
     pre_points = np.loadtxt(kwargs.get('progressfile'))
@@ -2474,7 +2474,7 @@ def cowboe3Dsurface(**kwargs):
     return None
 
 def progressfile(**kwargs):
-    '''
+    """
     To create the progress file from an n*3*3 array. Gives the progress.txt file.
 
     Parameters
@@ -2486,7 +2486,7 @@ def progressfile(**kwargs):
     -------
     
 
-    '''
+    """
     points=kwargs['points']
     with open('progress.txt','w') as progfile:
         
@@ -2498,7 +2498,7 @@ def progressfile(**kwargs):
     return None
 
 def cowboeKS(**kwargs):
-    '''
+    """
     Computes the Kolmogorov-Smirnov statistic on 2 samples.
     The null hypothesis is that
     the two individual samples were extracted from the same distribution
@@ -2530,7 +2530,7 @@ def cowboeKS(**kwargs):
     -------
     None.
 
-    '''
+    """
     def distribution(w, data1, data2, loc):
     
         sns.distplot(sorted(data1),hist=False)
@@ -2592,7 +2592,7 @@ def cowboeKS(**kwargs):
     return None
 
 def cowboe_OVL (**kwargs):
-    '''
+    """
     Calculates the coefficient of overlap (OVL) for different window's
     distribution
 
@@ -2624,7 +2624,7 @@ def cowboe_OVL (**kwargs):
     None
         
 
-    '''
+    """
     
     def overlap(hist1,hist2,i,j):
 
@@ -2732,7 +2732,7 @@ def cowboe_OVL (**kwargs):
     return None     
 
 def cowboe_trajcut(**kwargs):
-    '''
+    """
     Slices the trajectories and creates new trajectory files with given percentage
     of the total sampling.
 
@@ -2764,7 +2764,7 @@ def cowboe_trajcut(**kwargs):
     -------
     None.
 
-    '''
+    """
     
     per = kwargs['percentage']
     loc = kwargs['location']
@@ -2791,7 +2791,7 @@ def cowboe_trajcut(**kwargs):
     return None   
 
 def cowboe_pmfplot(**kwargs):
-    '''
+    """
     Plots the pmf curve of a given free energy file.
 
     Parameters
@@ -2805,7 +2805,7 @@ def cowboe_pmfplot(**kwargs):
     -------
     None
     
-    '''
+    """
     
     free1  = kwargs['pmf']
     pdfname = kwargs['name']
@@ -2831,7 +2831,7 @@ def cowboe_pmfplot(**kwargs):
 
 
 def settings_update():
-    '''
+    """
     Prints instruction for updating default settings for the cowboe module and
     the wham calculation.
 
@@ -2839,7 +2839,7 @@ def settings_update():
     -------
     None.
 
-    '''
+    """
 
     print(f"\nTo make temporary runtime updates to variables cowboe_settings and wham_settings use,\n\
           Dict update e.g. cowboe_settings.update({{'param B' : 2.0001}})\n\n\
