@@ -51,9 +51,8 @@ setup(
    data_files = [("", ["LICENSE.txt"])],
    classifiers=[
    "Development Status :: 5 - Production/Stable",
-   "Intended Audience :: End Users/Desktop",
-   "Intended Audience :: Developers",
    "Intended Audience :: Science/Research",
+   "Intended Audience :: Developers",
    "Programming Language :: Python",
    "Programming Language :: Python :: 3.7",
    "Programming Language :: Python :: 3.8",

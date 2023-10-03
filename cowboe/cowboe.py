@@ -3,20 +3,12 @@
 
 """
 COWBOE - Construction Of Windows Based On free Energy. Package for optimization and selection of parameters for umbrella sampling.
-
 project website: https://github.com/kuroonai/cowboe
 
-@authors:
-Naveen Kumar Vasudevan, Li Xi
-Department of Chemical Engineering,
-McMaster University, 
-Hamilton, 
-Canada.
-naveenovan@gmail.com
 """
 __all__ = ['pmftopoints','cowboe', 'cowboefit', 'settings_update','cowboeKS', 'cowboeRNM', 'cowboeNM',\
            'progressfile', 'NMprogress', 'cowboe3Dsurface','cowboe_wham', 'pmfcompare',\
-           'cowboe_settings', 'wham_settings', 'cowboe_trajcut', 'cowboe_OVL', 'cowboe_pmfplot', 'pmfdiff','settings_update']
+           'cowboe_settings', 'wham_settings', 'cowboe_trajcut', 'cowboe_OVL', 'cowboe_pmfplot', 'pmfdiff']
 
 import os
 import sys
@@ -56,20 +48,18 @@ def pmftopoints(**kwargs):
     """
     Takes the test pmf file as input and generates gradient and initial guess for windows
 
-    Parameters
-    ----------
-    location : string
+    Parameters:
+        location : string
             Location to save the pickled varible file created from the test file.
             
-    testpmf : string
+        testpmf : string
             Name of the test pmf file.
     
-    order : int
+        order : int
             Order for polynomial fit.
         
-    Returns
-    -------
-    None
+    Returns:
+        None
     """
     oldpath = os.getcwd()
     
@@ -201,39 +191,34 @@ def pmftopoints(**kwargs):
     
     return None
 
-
 def cowboe(**kwargs):
     """
     cowboe algorithm for iteration and window selection
 
-    Parameters
-    ----------
-    A = float
-        Optimization parameter 'A' for NM algorithm and parameter 1 of cowboe.
+    Parameters:
+        A = float
+            Optimization parameter 'A' for NM algorithm and parameter 1 of cowboe.
     
-    B = float
-        parameter 'B' for the cowboe equation
+        B = float
+            Parameter 'B' for the cowboe equation
         
-    V = float
-        Optimization parameter for NM algorithm which controls energy 
-        barrier.
+        V = float
+            Optimization parameter for NM algorithm which controls energy barrier.
     
-    sc = int
-        Sampling considered for each windows in conventional method
-        in nano seconds e.g. 8 ns
+        sc = int
+            Sampling considered for each windows in conventional method in nano seconds e.g. 8 ns
         
-    name = str
-        Name of the point being evaluated
+        name = str
+            Name of the point being evaluated
         
-    subtype = str
-        Name of the sub type of the system
+        subtype = str
+            Name of the sub type of the system
         
-    location = string
+        location = string
             Location of the pickled variable file created from the test file in pmftopoints().
         
-    Returns
-    -------
-    None
+    Returns:
+        None
     """
     def Kcalc(windows, A, B, V, kgiven):
         """
@@ -852,33 +837,30 @@ def cowboe_wham(**kwargs):
     Grossfield, Alan, “WHAM: the weighted histogram analysis method”, 
     version 2.0.10, http://membrane.urmc.rochester.edu/wordpress/?page_id=126
 
-    Parameters
-    ----------
-    name : str,
-        name for the free energy file.
-    location : str
-        location of the folder with the trajectory files
-    MCtrials : int
-        Number of Monte Carlo trails (for bootstrapping). set to 0 if no bootstrapping
-        error analysis is required.
-    hist_min: float
-        Minimum value for the histogram
-    hist_max : float
-        Maximum value for the histogram
-    num_bins : int
-        Total number of bins
-    tol : float
-        Tolerance for the decimal places
-    temp : float
-        Temperature at which simulation is done, can be assigned through metadatafile entries
-    numpad : int
-        Numpad value for wham calculation, 0 for periodic PMF
-    metadatafile : string
-        Name of the metadata file
+    Parameters:
+        name : str
+            Name for the free energy file.
+        location : str
+            location of the folder with the trajectory files
+        MCtrials : int
+            Number of Monte Carlo trails (for bootstrapping). set to 0 if no bootstrapping error analysis is required.
+        hist_min: float
+            Minimum value for the histogram
+        hist_max : float
+            Maximum value for the histogram
+        num_bins : int
+            Total number of bins
+        tol : float
+            Tolerance for the decimal places
+        temp : float
+            Temperature at which simulation is done, can be assigned through metadatafile entries
+        numpad : int
+            Numpad value for wham calculation, 0 for periodic PMF
+        metadatafile : string
+            Name of the metadata file
 
-    Returns
-    -------
-    None
+    Returns:
+        None
     """
     currentdir = os.getcwd()
     
@@ -916,23 +898,20 @@ def cowboe_wham(**kwargs):
     
     return None
 
-
 def pmfdiff(**kwargs):
     """
     Plots two pmf curves and the abs difference between them.
 
-    Parameters
-    ----------
-    pmf1 : str,
-        name of the curve 1 (PMF) file.
-    pmf2 : str,
-        name of the curve 2 (PMF) file.
-    name : str,
-        name to save the output with.
+    Parameters:
+        pmf1 : str
+            Name of the curve 1 (PMF) file.
+        pmf2 : str
+            Name of the curve 2 (PMF) file.
+        name : str
+            Name to save the output with.
 
-    Returns
-    -------
-    None
+    Returns:
+        None
     """
     free1 = kwargs['pmf1']
     free2 = kwargs['pmf2']
@@ -981,35 +960,34 @@ def pmfcompare(**kwargs):
     """
     Plots the error bars of the two curves
 
-    Parameters
-    ----------
-    pmfs : list or tuple,
-        names of the PMF files to be plotted.
+    Parameters:
+        pmfs : list or tuple
+            Names of the PMF files to be plotted.
 
-    name : str,
-        name to save the output with.
+        name : str
+            Name to save the output with.
     
-    splice : array
-        array for index value for each pmf curve to splice to
+        splice : array
+            Array for index value for each pmf curve to splice to
     
-    markzero : Bool
-        Whether to mark y = 0 with a dashed line or not
+        markzero : Bool
+            Whether to mark y = 0 with a dashed line or not
     
-    markers : list 
-        list of matplotlib markers to use for each curve
+        markers : list 
+            List of matplotlib markers to use for each curve
     
-    colors : list
-        list of matplotlib plot colors to use for each curve
+        colors : list
+            List of matplotlib plot colors to use for each curve
         
-    linestyles : list
-        list of matplotlib plot line styles to use for each curve
-    mfc : str
-        takes input for the marker face color
-    lloc : str
-        Legend location 'inside' or 'outside'
-    Returns
-    -------
-    None
+        linestyles : list
+            List of matplotlib plot line styles to use for each curve
+        mfc : str
+            Takes input for the marker face color
+        lloc : str
+            Legend location 'inside' or 'outside'
+    
+    Returns:
+        None
     """
     frees = kwargs['pmfs']
     pdfname = kwargs['name']
@@ -1075,27 +1053,23 @@ def pmfcompare(**kwargs):
     
     return None
 
-
 def cowboefit(**kwargs):
     """
     Finds the fitness or area difference between the test and benchmark pmf curves
 
-    Parameters
-    ----------
-    test : str
-        name of the pmf curve being tested ( point name used in pmftopoints() ).
+    Parameters:
+        test : str
+            Name of the pmf curve being tested ( point name used in pmftopoints() ).
     
-    bench : str
-        name of the benchmarck pmf curve
+        bench : str
+            Name of the benchmarck pmf curve
         
-    frommin : bool
-        specify whether to consider error only after the minimum positions i.e. from x where pmf=0
+        frommin : bool
+            Specify whether to consider error only after the minimum positions i.e. from x where pmf=0
         
-    -------
-    Returns
-    
-    outdict  : dict
-        dictionary  with all the calculated deviation information.
+    Returns:
+        outdict  : dict
+            Dictionary  with all the calculated deviation information.
     """
     def clean_files(test_file, bench_file, fromzero):
         # Load data from files
@@ -1220,30 +1194,25 @@ def cowboefit(**kwargs):
     
     print(f'\nAbsolute maximum deviation : {vdist:.4f}\n\tIt is at x={maxpos:.4f}\nAbsolute integral error: {varea:.4f}\n\tIt is between x=[{xmin},{xmax}]\nThe normalized area : {varea_norm:.4f}\n')
     
-    return outdict
-    
+    return outdict   
     
 def cowboeNM(**kwargs) :
     """
     Nelder-Mead optimization algorithm for the cowboe module.
 
-    Parameters
-    ----------
-    A = array
-        A values of the 3 initial points for the 2 parameter optimization.
+    Parameters:
+        A = array
+            A values of the 3 initial points for the 2 parameter optimization.
         
-    V = array
-        V or energy barrier values of the 3 initial points for 
-        the 2 parameter optimization.
+        V = array
+            V or energy barrier values of the 3 initial points for the 2 parameter optimization.
     
-    fit = array
-        fitness or the area difference value between the benchmark
-        and the test case.
+        fit = array
+            Fitness or the area difference value between the benchmark and the test case.
         
-    Returns
-    -------
-    conv = dict.
-        dictionary with possible moves for the current simplex
+    Returns:
+        conv = dict.
+            Dictionary with possible moves for the current simplex
     """
     
     # #################################################################
@@ -1633,23 +1602,19 @@ def cowboeRNM(**kwargs) :
     """
     (Restricted) Nelder-Mead optimization algorithm for the cowboe module .
 
-    Parameters
-    ----------
-    A = array
-        A values of the 3 initial points for the 2 parameter optimization.
+    Parameters:
+        A = array
+            A values of the 3 initial points for the 2 parameter optimization.
         
-    V = array
-        V or energy barrier values of the 3 initial points for 
-        the 2 parameter optimization.
+        V = array
+            V or energy barrier values of the 3 initial points for the 2 parameter optimization.
     
-    fit = array
-        fitness or the area difference value between the benchmark
-        and the test case.
+        fit = array
+            Fitness or the area difference value between the benchmark and the test case.
         
-    Returns
-    -------
-    conv = dict.
-            dictionary with possible moves for the current simplex
+    Returns:
+        conv = dict.
+            Dictionary with possible moves for the current simplex
             
     """
     
@@ -2038,16 +2003,12 @@ def NMprogress(**kwargs):
     """
     provides an update on the progress of the algorithm by generating gif for steps and summarizies the function values in term of figures and convergence.
 
-    Parameters
-    ----------
-    progessfile : str
-                Name of the pogress file which hosts the parameter values in
-                3 columns A, V, fit() in groups of 3 (three vertices of the simplex
-                at any given step)
+    Parameters:
+        progessfile : str
+                Name of the pogress file which hosts the parameter values in 3 columns A, V, fit() in groups of 3 (three vertices of the simplex          at any given step)
 
-    Returns
-    -------
-    None
+    Returns:
+        None
     """
 
 
@@ -2160,7 +2121,7 @@ def NMprogress(**kwargs):
         Parameters
         ----------
         FPS : int
-            frames per second for the gif file to be generated.
+            Frames per second for the gif file to be generated.
     
         Returns
         -------
@@ -2353,29 +2314,22 @@ def cowboe3Dsurface(**kwargs):
     Constructs a 3D surface plot based on the evaluvated unique parameter combinations
     and saves it in mp4 format. Need to have ffmpeg installed in path to use this function.
 
-    Parameters
-    ----------
-    progessfile : str
-                Name of the pogress file which hosts the parameter values in
-                3 columns A, V, fit() in groups of 3 (three vertices of the simplex
-                at any given step)
+    Parameters:
+        progessfile : str
+            Name of the pogress file which hosts the parameter values in 3 columns A, V, fit() in groups of 3 (three vertices of the simplex at any given step)
     
-    fps         : int, optional
-                Frames per second for the animation.
-                Default value is 15
+        fps : int, optional
+            Frames per second for the animation. Default value is 15
                 
-    dpi         : int, optional
-                Dots per inch value for the animation.
-                Default value is 300
+        dpi : int, optional
+            Dots per inch value for the animation. Default value is 300
     
-    name        : str, optional
-                file name for the animation.
-                Default value is 'cowboe3Dsurface.mp4'
+        name : str, optional
+            File name for the animation. Default value is 'cowboe3Dsurface.mp4'
         
 
-    Returns
-    -------
-    None
+    Returns:
+        None
     """
 
 
@@ -2416,14 +2370,12 @@ def progressfile(**kwargs):
     """
     To create the progress file from an n*3*3 array. Gives the progress.txt file.
 
-    Parameters
-    ----------
-    points : numpy array in the shape of n*3*3
-        An array of list of all the simplexes obtained.
+    Parameters:
+        points : numpy array in the shape of n*3*3
+            An array of list of all the simplexes obtained.
 
-    Returns
-    -------
-    None
+    Returns:
+        None
     """
     points=kwargs['points']
     with open('progress.txt','w') as progfile:
@@ -2439,30 +2391,18 @@ def cowboeKS(**kwargs):
     """
     Computes the Kolmogorov-Smirnov statistic on 2 samples. The null hypothesis is that the two individual samples were extracted from the same distribution and if the p-value is large or the KS statistics is small, then we cannot reject the hypothesis that the distributions of the two samples are the same.
 
-    Parameters
-    ----------
-    location : str,
+    Parameters:
+        location : str
+            Location of all the trajectory files for a given point.
     
-        location of all the trajectory files for a given point.
-    
-    listfile : str,
-    
-        name of the file containing the list of all the trajectory files
-        in the ascending order of windows. Can be same as the metadata file
-        used for wham calculation or just a list of each window's trajectory
-        file's names.
+        listfile : str
+            Name of the file containing the list of all the trajectory files in the ascending order of windows. Can be same as the metadata file used for wham calculation or just a list of each window's trajectory file's names.
         
-    
-    percentage : float or int,
-    
-        percentage of the total sampling to perform the test on
-        eg. if 80 is given window n's total data will be compared to 80%
-        of its data to test the null hypothesis. 
-        
+        percentage : float or str
+            Percentage of the total sampling to perform the test on eg. if 80 is given window n's total data will be compared to 80% of its data to test the null hypothesis. 
 
-    Returns
-    -------
-    None
+    Returns:
+        None
     """
     def distribution(w, data1, data2, loc):
     
@@ -2528,30 +2468,21 @@ def cowboe_OVL (**kwargs):
     """
     Calculates the coefficient of overlap (OVL) for different window's distribution
 
-    Parameters
-    ----------
-    location : str
-    
-        location of all the trajectory files for a given point.
-    
-    listfile : str
-    
-        Name of the file containing the list of all the trajectory files
-        in the ascending order of windows. Can be same as the metadata file
-        used for wham calculation or just a list of each window's trajectory
-        file's names.
-    
-    name    : str
-        
-        Name for the Overlap calculation (generally name of the point).
-    
-    distplot : bool
-        
-        switches the distribution plot with overlap on or off
+    Parameters:
+        location : str  
+            Location of all the trajectory files for a given point.
 
-    Returns
-    -------
-    None
+        listfile : str
+            Name of the file containing the list of all the trajectory files in the ascending order of windows. Can be same as the metadata file used for wham calculation or just a list of each window's trajectory file's names.
+    
+        name    : str
+            Name for the Overlap calculation (generally name of the point).
+    
+        distplot : bool      
+            Switches the distribution plot with overlap on or off
+
+    Returns:
+        None
     """
     
     def overlap(hist1,hist2,i,j):
@@ -2663,33 +2594,25 @@ def cowboe_trajcut(**kwargs):
     """
     Slices the trajectories and creates new trajectory files with given percentage of the total sampling.
 
-    Parameters
-    ----------
+    Parameters:
     
-    start   : int
-        index value of the starting point from where 
-        the percentage of the data will be extracted. to start from the
-        beginnning just provide "0" (without the quotes).
+        start   : int
+            Index value of the starting point from where the percentage of the data will be extracted. to start from the beginnning just provide "0" (without the quotes).
     
-    percentage : float
-        Percentage of the sampling (points) to use from total sampling.
+        percentage : float
+            Percentage of the sampling (points) to use from total sampling.
     
-    location : str
-        location of all the trajectory files for a given point.
+        location : str
+            Location of all the trajectory files for a given point.
     
-    listfile : str
+        listfile : str
+            Name of the file containing the list of all the trajectory files in the ascending order of windows. Can be same as the metadata file used for wham calculation or just a list of each window's trajectory file's names (with extension).
+    
+        name : str
+            Name of the point.
 
-        Name of the file containing the list of all the trajectory files
-        in the ascending order of windows. Can be same as the metadata file
-        used for wham calculation or just a list of each window's trajectory
-        file's names (with extension).
-    
-    name :  str
-        name of the point.
-
-    Returns
-    -------
-    None
+    Returns:
+        None
     """
     
     per = kwargs['percentage']
@@ -2720,16 +2643,14 @@ def cowboe_pmfplot(**kwargs):
     """
     Plots the pmf curve of a given free energy file.
 
-    Parameters
-    ----------
-    pmf : str,
-        name of the curve 1 (PMF) file.
-    name : str,
-        name to save the output with.
+    Parameters:
+        pmf : str
+            Name of the curve 1 (PMF) file.
+        name : str
+            Name to save the output with.
 
-    Returns
-    -------
-    None
+    Returns:
+        None
     """
     
     free1  = kwargs['pmf']
@@ -2754,15 +2675,13 @@ def cowboe_pmfplot(**kwargs):
     plt.show()
     plt.close()    
 
-
 def settings_update():
     """
     Prints instruction for updating default settings for the cowboe module and
     the wham calculation.
 
-    Returns
-    -------
-    None
+    Returns:
+        None
     """
 
     print(f"\nTo make temporary runtime updates to variables cowboe_settings and wham_settings use,\n\
