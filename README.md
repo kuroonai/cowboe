@@ -59,6 +59,17 @@ python -c "import cowboe"
 ```
 Any error means cowboe was not installed sucessfully. 
 
+## Citation
+Kindly cite the COWBOE algorithm as follows,
+```
+@article{vasudevanpotential,
+  title={Potential of Mean Force of Short-Chain Surface Adsorption using Non-Uniform Sampling Windows for Optimal Computational Efficiency},
+  author={Vasudevan, Naveen Kumar and Li, Dongyang and Xi, Li},
+  journal={Macromolecular Theory and Simulations},
+  pages={2300057},
+  publisher={Wiley Online Library}
+}
+```
 ## Usage
 cowboe has different functions which perform individual task like running the cowboe algorithm, performing NM optimization, visualization of the pmf curves and summarizing the NM steps. A detailed explanation and examples with the required data files are provided in the examples directory. A simple but comprehensive example is shown below,
 ```sh
